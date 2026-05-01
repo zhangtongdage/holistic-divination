@@ -1,0 +1,31 @@
+{
+  "name": "holistic-divination-mobile",
+  "version": "1.0.0",
+  "description": "全息人本古法卜算 - 移动端",
+  "main": "main.uts",
+  "scripts": {
+    "dev:app": "uniapp run app",
+    "build:app": "uniapp build app",
+    "dev:ios": "uniapp run ios",
+    "build:ios": "uniapp build ios",
+    "dev:android": "uniapp run android",
+    "build:android": "uniapp build android",
+    "dev:h5": "uniapp run dev --platform h5",
+    "build:h5": "uniapp build --platform h5",
+    "dev:mp-weixin": "uniapp run dev --platform mp-weixin",
+    "build:mp-weixin": "uniapp build --platform mp-weixin"
+  },
+  "dependencies": {
+    "@dcloudio/uni-app": "3.0.0-alpha-4010520240415001",
+    "@dcloudio/uni-app-plus": "3.0.0-alpha-4010520240415001",
+    "@dcloudio/uni-h5": "3.0.0-alpha-4010520240415001",
+    "@dcloudio/uni-mp-weixin": "3.0.0-alpha-4010520240415001",
+    "pinia": "^2.1.7",
+    "vue": "^3.3.4"
+  },
+  "devDependencies": {
+    "@dcloudio/vite-plugin-uni": "3.0.0-alpha-4010520240415001",
+    "typescript": "^5.0.2",
+    "vite": "^5.0.0"
+  }
+}

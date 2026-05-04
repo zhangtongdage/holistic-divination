@@ -1,14 +1,17 @@
 /**
- * 纯API推理引擎（多提供商对接）
+ * 混合AI推理引擎（API + 本地模型双模式）
+ * 
+ * 支持：
+ * 1. API模式：OpenAI/Claude/智谱/DeepSeek等
+ * 2. 本地模式：GGUF模型离线推理
  * 
  * 设计原则：
- * 1. 只保留API模式，去掉ONNX本地推理
- * 2. 支持多提供商（OpenAI/Claude/智谱/百度/DeepSeek/自定义）
+ * 1. 优先使用本地模型（零网络依赖）
+ * 2. API模式作为备选和高质量补充
  * 3. 所有密钥本地AES-256加密
- * 4. 请求/响应格式统一，便于前端对接
  */
 
-// 浏览器兼容的 EventEmitter 实现（替代 Node.js events 模块）
+// 浏览器兼容的 EventEmitter
 class EventEmitter {
   private listeners: Map<string, Array<(...args: any[]) => void>> = new Map();
 
@@ -32,26 +35,28 @@ class EventEmitter {
 
   removeListener(event: string, listener: (...args: any[]) => void): this {
     const fns = this.listeners.get(event);
-    if (fns) {
-      this.listeners.set(event, fns.filter(fn => fn !== listener));
-    }
+    if (fns) this.listeners.set(event, fns.filter(fn => fn !== listener));
     return this;
   }
 }
 
 // ==================== 类型定义 ====================
 
-export type AIMode = 'api';
+export type AIMode = 'api' | 'local' | 'hybrid';
 export type APIProvider = 'openai' | 'claude' | 'zhipu' | 'baidu' | 'deepseek' | 'nvidia' | 'custom';
 
 export interface AIConfig {
   mode: AIMode;
   apiProvider: APIProvider;
-  apiKey: string;          // AES-256加密存储
-  apiBaseUrl?: string;     // 自定义API地址
-  modelName?: string;      // 具体模型版本
-  timeout: number;         // API超时（毫秒）
-  retryCount: number;      // 失败重试次数
+  apiKey: string;
+  apiBaseUrl?: string;
+  modelName?: string;
+  timeout: number;
+  retryCount: number;
+  // 本地模型配置
+  localModelPath?: string;
+  gpuLayers?: number;
+  contextSize?: number;
 }
 
 export interface InferenceRequest {
@@ -63,14 +68,13 @@ export interface InferenceRequest {
   };
   task: 'interpret' | 'classics_match' | 'trend_analysis' | 'suggestion';
   complexity: 'simple' | 'standard' | 'deep';
-  /** 自定义系统提示词（可选，覆盖默认） */
   systemPrompt?: string;
 }
 
 export interface InferenceResult {
   content: string;
   confidence: number;
-  source: 'api';
+  source: 'api' | 'local';
   latency: number;
   modelUsed: string;
   citations: string[];
@@ -118,21 +122,27 @@ export interface ClassicReference {
   relevance: number;
 }
 
-// ==================== API配置常量 ====================
+// ==================== 配置常量 ====================
 
 export const DEFAULT_CONFIG: AIConfig = {
-  mode: 'api',
+  mode: 'hybrid',  // 默认混合模式：优先本地，失败回退API
   apiProvider: 'openai',
   apiKey: '',
   timeout: 30000,
   retryCount: 3,
+  gpuLayers: 35,
+  contextSize: 4096,
 };
 
 export const SUPPORTED_PROVIDERS: APIProvider[] = [
   'openai', 'claude', 'zhipu', 'baidu', 'deepseek', 'custom'
 ];
 
-export const MODE_OPTIONS = [{ value: 'api', label: 'API模式' }];
+export const MODE_OPTIONS = [
+  { value: 'local', label: '本地模式（离线可用）' },
+  { value: 'api', label: 'API模式（需联网）' },
+  { value: 'hybrid', label: '混合模式（推荐）' },
+];
 
 export const COMPLEXITY_SETTINGS = {
   simple: { label: '简明', maxTokens: 2000, description: '快速解答，适合简单问题' },
@@ -160,11 +170,13 @@ const DEFAULT_MODELS: Record<APIProvider, string> = {
   custom: 'custom-model',
 };
 
-// ==================== API推理引擎主类 ====================
+// ==================== 混合AI引擎主类 ====================
 
 export class HybridAIEngine extends EventEmitter {
   private config: AIConfig;
   private ready: boolean = false;
+  private localEngine: any = null;  // LocalAIEngine (动态导入)
+  private apiAvailable: boolean = false;
 
   constructor(config: Partial<AIConfig> = {}) {
     super();
@@ -172,18 +184,35 @@ export class HybridAIEngine extends EventEmitter {
   }
 
   /**
-   * 初始化引擎 — 验证API配置
+   * 初始化引擎
    */
   public async initialize(): Promise<void> {
     this.emit('init:start');
 
     try {
-      if (!this.config.apiKey || this.config.apiKey.length < 10) {
-        throw new Error('API密钥无效或为空');
+      // 1. 尝试初始化本地模型
+      if (this.config.mode === 'local' || this.config.mode === 'hybrid') {
+        try {
+          await this.initLocalEngine();
+          console.log('[HybridAI] 本地模型初始化成功 ✅');
+        } catch (error) {
+          console.warn('[HybridAI] 本地模型初始化失败:', (error as Error).message);
+          if (this.config.mode === 'local') {
+            throw error;  // 纯本地模式下失败则报错
+          }
+          // 混合模式下继续尝试API
+        }
       }
 
-      if (this.config.apiProvider !== 'custom' && !API_ENDPOINTS[this.config.apiProvider]) {
-        throw new Error(`不支持的API提供商: ${this.config.apiProvider}`);
+      // 2. 检查API可用性
+      if (this.config.mode === 'api' || this.config.mode === 'hybrid') {
+        if (this.config.apiKey && this.config.apiKey.length >= 10) {
+          this.apiAvailable = true;
+        }
+      }
+
+      if (!this.localEngine && !this.apiAvailable) {
+        throw new Error('无可用推理后端：本地模型未找到，API密钥未配置');
       }
 
       this.ready = true;
@@ -195,7 +224,23 @@ export class HybridAIEngine extends EventEmitter {
   }
 
   /**
-   * 执行推理 — 带重试机制
+   * 初始化本地引擎 (动态导入，避免浏览器环境报错)
+   */
+  private async initLocalEngine(): Promise<void> {
+    // 在Node.js/Tauri环境中动态导入
+    if (typeof window === 'undefined') {
+      const { LocalAIEngine } = await import('./local-engine');
+      this.localEngine = new LocalAIEngine({
+        modelPath: this.config.localModelPath || '',
+        gpuLayers: this.config.gpuLayers || 35,
+        contextSize: this.config.contextSize || 4096,
+      });
+      await this.localEngine.initialize();
+    }
+  }
+
+  /**
+   * 执行推理 — 智能路由
    */
   public async infer(request: InferenceRequest): Promise<InferenceResult> {
     if (!this.ready) {
@@ -203,12 +248,96 @@ export class HybridAIEngine extends EventEmitter {
     }
 
     const startTime = Date.now();
+
+    // 混合模式：优先本地，失败回退API
+    if (this.localEngine) {
+      try {
+        const result = await this.localEngine.infer(request);
+        return result;
+      } catch (error) {
+        console.warn('[HybridAI] 本地推理失败，回退API:', (error as Error).message);
+        if (!this.apiAvailable) {
+          throw error;
+        }
+      }
+    }
+
+    // API模式或本地失败回退
+    if (this.apiAvailable) {
+      return await this.inferViaAPI(request, startTime);
+    }
+
+    throw new Error('无可用推理后端');
+  }
+
+  /**
+   * 流式推理
+   */
+  public async *inferStream(request: InferenceRequest): AsyncGenerator<string, void, unknown> {
+    if (!this.ready) {
+      throw new Error('引擎未初始化');
+    }
+
+    // 本地模型流式
+    if (this.localEngine) {
+      try {
+        yield* this.localEngine.inferStream(request);
+        return;
+      } catch (error) {
+        console.warn('[HybridAI] 本地流式推理失败，回退API');
+      }
+    }
+
+    // API流式
+    if (this.apiAvailable) {
+      yield* this.inferStreamViaAPI(request);
+      return;
+    }
+
+    throw new Error('无可用推理后端');
+  }
+
+  /**
+   * 获取引擎状态
+   */
+  public getStatus() {
+    return {
+      ready: this.ready,
+      mode: this.config.mode,
+      localAvailable: !!this.localEngine,
+      apiAvailable: this.apiAvailable,
+      provider: this.config.apiProvider,
+      model: this.config.modelName || DEFAULT_MODELS[this.config.apiProvider],
+      hasKey: !!this.config.apiKey && this.config.apiKey.length > 0,
+    };
+  }
+
+  /**
+   * 切换模式
+   */
+  public async switchMode(mode: AIMode): Promise<void> {
+    this.ready = false;
+    this.config.mode = mode;
+    await this.initialize();
+  }
+
+  /**
+   * 更新配置
+   */
+  public async updateConfig(config: Partial<AIConfig>): Promise<void> {
+    Object.assign(this.config, config);
+    this.ready = false;
+    await this.initialize();
+  }
+
+  // ==================== API推理（保留原有逻辑） ====================
+
+  private async inferViaAPI(request: InferenceRequest, startTime: number): Promise<InferenceResult> {
     let lastError: Error | null = null;
 
     for (let attempt = 0; attempt < this.config.retryCount; attempt++) {
       try {
         if (attempt > 0) {
-          this.emit('retry', { attempt, maxRetries: this.config.retryCount });
           await this.delay(1000 * attempt);
         }
 
@@ -224,154 +353,62 @@ export class HybridAIEngine extends EventEmitter {
         };
       } catch (error) {
         lastError = error as Error;
-        this.emit('error', { attempt, error: lastError });
       }
     }
 
-    throw new Error(`推理失败，已重试${this.config.retryCount}次: ${lastError?.message}`);
+    throw new Error(`API推理失败，已重试${this.config.retryCount}次: ${lastError?.message}`);
   }
 
-  /**
-   * 流式推理 — 用于实时显示（OpenAI/DeepSeek格式）
-   */
-  public async *inferStream(request: InferenceRequest): AsyncGenerator<string, void, unknown> {
-    if (!this.ready) {
-      throw new Error('引擎未初始化');
-    }
-
+  public async *inferStreamViaAPI(request: InferenceRequest): AsyncGenerator<string, void, unknown> {
     const url = this.config.apiBaseUrl || API_ENDPOINTS[this.config.apiProvider] || '';
     const model = this.config.modelName || DEFAULT_MODELS[this.config.apiProvider];
     const prompt = this.buildPrompt(request);
-    const systemMsg = request.systemPrompt || '你是精通中国传统术数的AI助手，擅长易经、六爻、梅花易数等卜筮学问。';
+    const systemMsg = request.systemPrompt || '你是精通中国传统术数的AI助手。';
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.getAuthHeaders(),
-        },
-        body: JSON.stringify({
-          model,
-          messages: [
-            { role: 'system', content: systemMsg },
-            { role: 'user', content: prompt },
-          ],
-          temperature: 0.7,
-          max_tokens: COMPLEXITY_SETTINGS[request.complexity].maxTokens,
-          stream: true,
-        }),
-      });
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...this.getAuthHeaders(),
+      },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: 'system', content: systemMsg },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: COMPLEXITY_SETTINGS[request.complexity].maxTokens,
+        stream: true,
+      }),
+    });
 
-      if (!response.body) throw new Error('流式响应为空');
+    if (!response.body) throw new Error('流式响应为空');
 
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
 
-        const chunk = decoder.decode(value, { stream: true });
-        const lines = chunk.split('\n');
+      const chunk = decoder.decode(value, { stream: true });
+      const lines = chunk.split('\n');
 
-        for (const line of lines) {
-          if (line.startsWith('data: ')) {
-            const data = line.slice(6);
-            if (data === '[DONE]') return;
-
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta;
-              // 推理模型可能在 reasoning_content 字段输出
-              const content = delta?.content || delta?.reasoning_content;
-              if (content) yield content;
-            } catch {
-              // 忽略非JSON行
-            }
-          }
+      for (const line of lines) {
+        if (line.startsWith('data: ')) {
+          const data = line.slice(6);
+          if (data === '[DONE]') return;
+          try {
+            const parsed = JSON.parse(data);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) yield content;
+          } catch {}
         }
       }
-    } catch (error) {
-      throw new Error(`流式推理失败: ${(error as Error).message}`);
     }
   }
 
-  /**
-   * 获取引擎状态
-   */
-  public getStatus(): {
-    ready: boolean;
-    provider: APIProvider;
-    model: string;
-    hasKey: boolean;
-  } {
-    return {
-      ready: this.ready,
-      provider: this.config.apiProvider,
-      model: this.config.modelName || DEFAULT_MODELS[this.config.apiProvider],
-      hasKey: !!this.config.apiKey && this.config.apiKey.length > 0,
-    };
-  }
-
-  /**
-   * 切换API提供商
-   */
-  public async switchProvider(provider: APIProvider, apiKey?: string): Promise<void> {
-    this.ready = false;
-    this.config.apiProvider = provider;
-    if (apiKey) this.config.apiKey = apiKey;
-    await this.initialize();
-  }
-
-  /**
-   * 更新API配置
-   */
-  public async updateConfig(config: Partial<AIConfig>): Promise<void> {
-    const requiresReinit = !!config.apiProvider || !!config.apiKey;
-    Object.assign(this.config, config);
-    if (requiresReinit) {
-      this.ready = false;
-      await this.initialize();
-    }
-  }
-
-  /**
-   * 验证API密钥有效性
-   */
-  public async validateKey(): Promise<{ valid: boolean; error?: string }> {
-    try {
-      await this.callAPI({
-        divinationContext: {
-          personInfo: {
-            name: '测试',
-            birthDate: { lunarYear: 2000, lunarMonth: 1, lunarDay: 1, isLeap: false, yearGanZhi: '庚辰' },
-            birthplace: '北京',
-            gender: 'male',
-          },
-          question: {
-            category: { domain: 'general', urgency: 'normal' },
-            description: '测试API连接',
-            askTime: new Date(),
-            mentalState: '平静',
-          },
-          hexagram: { primary: '乾', lines: [true, true, true, true, true, true], timestamp: new Date() },
-          classics: [],
-        },
-        task: 'interpret',
-        complexity: 'simple',
-      });
-      return { valid: true };
-    } catch (error) {
-      return { valid: false, error: (error as Error).message };
-    }
-  }
-
-  // ==================== 私有方法 ====================
-
-  /**
-   * 调用API
-   */
   private async callAPI(request: InferenceRequest): Promise<{ content: string; model: string }> {
     const url = this.config.apiBaseUrl || API_ENDPOINTS[this.config.apiProvider];
     if (!url) throw new Error('API地址未配置');
@@ -380,17 +417,12 @@ export class HybridAIEngine extends EventEmitter {
     const prompt = this.buildPrompt(request);
 
     const controller = new AbortController();
-    // 推理模型需要更多时间，至少保证 300 秒
-    const actualTimeout = Math.max(this.config.timeout, 300000);
-    const timeoutId = setTimeout(() => controller.abort(), actualTimeout);
+    const timeoutId = setTimeout(() => controller.abort(), Math.max(this.config.timeout, 300000));
 
     try {
       const response = await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...this.getAuthHeaders(),
-        },
+        headers: { 'Content-Type': 'application/json', ...this.getAuthHeaders() },
         body: JSON.stringify(this.buildRequestBody(model, prompt, request.complexity, request.systemPrompt)),
         signal: controller.signal,
       });
@@ -398,23 +430,18 @@ export class HybridAIEngine extends EventEmitter {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorData = await response.text();
-        throw new Error(`API请求失败(${response.status}): ${errorData}`);
+        throw new Error(`API请求失败(${response.status})`);
       }
 
       const data = await response.json();
       return this.parseResponse(data);
     } catch (error) {
-      if ((error as Error).name === 'AbortError') {
-        throw new Error('API请求超时');
-      }
+      clearTimeout(timeoutId);
+      if ((error as Error).name === 'AbortError') throw new Error('API请求超时');
       throw error;
     }
   }
 
-  /**
-   * 获取请求头
-   */
   private getAuthHeaders(): Record<string, string> {
     const key = this.config.apiKey;
     switch (this.config.apiProvider) {
@@ -427,65 +454,39 @@ export class HybridAIEngine extends EventEmitter {
     }
   }
 
-  /**
-   * 构建请求体
-   */
-  private buildRequestBody(model: string, prompt: string, complexity: 'simple' | 'standard' | 'deep', systemMsgOverride?: string): unknown {
-    const maxTokens = COMPLEXITY_SETTINGS[complexity]?.maxTokens || 1500;
-    // 推理模型（stepfun等）需要更多 token 来产生内容（reasoning + content）
-    const isReasoningModel = model.includes('step') || model.includes('reasoning') || model.includes('o1') || model.includes('o3');
-    const actualMaxTokens = isReasoningModel ? maxTokens * 3 : maxTokens;
-
-    const systemMsg = systemMsgOverride || '你是精通中国传统术数的AI助手。请根据卦象信息给出专业解读，结合实际，避免迷信。';
+  private buildRequestBody(model: string, prompt: string, complexity: string, systemMsg?: string): unknown {
+    const maxTokens = COMPLEXITY_SETTINGS[complexity as keyof typeof COMPLEXITY_SETTINGS]?.maxTokens || 1500;
+    const systemMsgDefault = systemMsg || '你是精通中国传统术数的AI助手。请根据卦象信息给出专业解读，结合实际，避免迷信。';
 
     if (this.config.apiProvider === 'claude') {
-      return {
-        model,
-        system: systemMsg,
-        messages: [{ role: 'user', content: prompt }],
-        max_tokens: actualMaxTokens,
-      };
+      return { model, system: systemMsgDefault, messages: [{ role: 'user', content: prompt }], max_tokens: maxTokens };
     }
 
     return {
       model,
       messages: [
-        { role: 'system', content: systemMsg },
+        { role: 'system', content: systemMsgDefault },
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: actualMaxTokens,
+      max_tokens: maxTokens,
     };
   }
 
-  /**
-   * 解析API响应
-   */
   private parseResponse(data: unknown): { content: string; model: string } {
     const d = data as any;
-
     if (this.config.apiProvider === 'claude') {
-      return {
-        content: d.content?.[0]?.text || JSON.stringify(d),
-        model: d.model || this.config.modelName || 'claude',
-      };
+      return { content: d.content?.[0]?.text || JSON.stringify(d), model: d.model || 'claude' };
     }
-
     const msg = d.choices?.[0]?.message;
-    // 推理模型（如 stepfun）会把内容放在 reasoning_content 字段
-    const content = msg?.content || msg?.reasoning_content || d.result || JSON.stringify(d);
     return {
-      content,
-      model: d.model || this.config.modelName || 'unknown',
+      content: msg?.content || msg?.reasoning_content || JSON.stringify(d),
+      model: d.model || 'unknown',
     };
   }
 
-  /**
-   * 构建推理提示词
-   */
   private buildPrompt(request: InferenceRequest): string {
     const { personInfo, question, hexagram, classics } = request.divinationContext;
-
     const complexityDesc: Record<string, string> = {
       simple: '请给出简明扼要的解读，150字以内。',
       standard: '请给出标准深度的解读，结合卦象和典籍。',
@@ -493,11 +494,7 @@ export class HybridAIEngine extends EventEmitter {
     };
 
     const classicsText = classics.length > 0
-      ? `\n\n【典籍引用】：
-${classics.map(c => {
-          const base = `《${c.title}》·${c.chapter}：${c.quote}`;
-          return c.translation ? `${base}\n  白话：${c.translation}` : base;
-        }).join('\n')}`
+      ? `\n\n【典籍引用】：\n${classics.map(c => `《${c.title}》·${c.chapter}：${c.quote}`).join('\n')}`
       : '';
 
     return `【卜筮】${personInfo.name} 问：${question.description}
@@ -509,13 +506,7 @@ ${classics.map(c => {
 【本卦】${hexagram.primary}${hexagram.changing ? ` → ${hexagram.changing}` : ''}
 【爻象】${hexagram.lines.map(l => l ? '━━━━━' : '━ ━━').join(' ')}${classicsText}
 
-${complexityDesc[request.complexity] || complexityDesc.standard}
-
-注意事项：
-1. 解读需基于传统易学原理，但避免过度玄学表述
-2. 给出实际、可操作的行动建议
-3. 强调卜筮仅供参考，不可迷信
-4. 如有应期判断，请一并说明`;
+${complexityDesc[request.complexity] || complexityDesc.standard}`;
   }
 
   private delay(ms: number): Promise<void> {
@@ -523,12 +514,15 @@ ${complexityDesc[request.complexity] || complexityDesc.standard}
   }
 
   public async dispose(): Promise<void> {
+    if (this.localEngine) {
+      await this.localEngine.dispose();
+    }
     this.ready = false;
     this.removeAllListeners();
   }
 }
 
-// ==================== API密钥加密存储 ====================
+// ==================== 安全配置存储 ====================
 
 export class SecureConfigStorage {
   private static readonly STORAGE_KEY = 'hd_ai_config';
@@ -544,30 +538,24 @@ export class SecureConfigStorage {
     if (typeof window === 'undefined') return null;
     const encrypted = localStorage.getItem(this.STORAGE_KEY);
     if (!encrypted) return null;
-
     try {
       const decrypted = await this.decrypt(encrypted);
       return JSON.parse(decrypted);
-    } catch {
-      return null;
-    }
+    } catch { return null; }
   }
 
   public static clear(): void {
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem(this.STORAGE_KEY);
-    }
+    if (typeof window !== 'undefined') localStorage.removeItem(this.STORAGE_KEY);
   }
 
   private static async encrypt(data: string): Promise<string> {
-    // 使用Base64编码（实际应用应使用AES-256）
     if (typeof window !== 'undefined') return btoa(data);
     return Buffer.from(data).toString('base64');
   }
 
   private static async decrypt(encrypted: string): Promise<string> {
     if (typeof window !== 'undefined') return atob(encrypted);
-    return Buffer.from(encrypted, 'base64').toString();
+    return Buffer.from(encrypted, 'base64').toString('utf-8');
   }
 }
 

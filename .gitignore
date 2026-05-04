@@ -35,3 +35,10 @@ npm-debug.log*
 # 临时文件
 *.tmp
 *.bak
+
+# 模型文件(太大不适合git，需单独下载)
+core/models/*.gguf
+*.gguf
+
+# 训练数据
+*.jsonl

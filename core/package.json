@@ -1,12 +1,13 @@
 {
   "name": "@holistic-divination/core",
-  "version": "1.0.0",
-  "description": "全息人本古法卜算核心引擎",
+  "version": "2.0.0",
+  "description": "全息人本古法卜算核心引擎 - 本地AI推理版",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
-    "dist"
+    "dist",
+    "models"
   ],
   "scripts": {
     "build": "tsup src/index.ts --format cjs,esm --dts",
@@ -18,11 +19,18 @@
     "divination",
     "iching",
     "chinese-metaphysics",
-    "holistic"
+    "holistic",
+    "local-ai",
+    "gguf",
+    "llm"
   ],
-  "author": "",
+  "author": "zhangtongdage",
   "license": "MIT",
   "dependencies": {
+    "node-llama-cpp": "^3.0.0"
+  },
+  "optionalDependencies": {
+    "node-llama-cpp": "^3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

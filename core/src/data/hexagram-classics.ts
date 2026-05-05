@@ -28,7 +28,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：飞龙在天，利见大人。",
       "上九：亢龙有悔。",
     ],
-    translation: "The Creative. Heaven represents strength, creativity, and perpetual motion. The superior person strives unceasingly to strengthen themselves.",
+    translation: "天行健，君子以自强不息。乾卦象征天道运行刚健不止，君子当效法天道，奋发图强，永不停息。",
   },
   "2": {
     name: "坤",
@@ -43,7 +43,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：黄裳，元吉。",
       "上六：龙战于野，其血玄黄。",
     ],
-    translation: "The Receptive. Earth represents nurturing, receptivity, and support. The superior person cultivates broad virtue to carry all things.",
+    translation: "地势坤，君子以厚德载物。坤卦象征大地宽厚柔顺，君子当以深厚德行承载万物，包容一切。",
   },
   "3": {
     name: "屯",
@@ -58,7 +58,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：屯其膏，小贞吉，大贞凶。",
       "上六：乘马班如，泣血涟如。",
     ],
-    translation: "Difficulty at the Beginning. Like sprouts breaking through hard ground, initial difficulty gives way to growth. Establish firm foundations.",
+    translation: "万事开头难，如春草破土。初创之时虽艰辛，但根基若固，终将成长壮大。",
   },
   "4": {
     name: "蒙",
@@ -73,7 +73,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：童蒙，吉。",
       "上九：击蒙，不利为寇，利御寇。",
     ],
-    translation: "Youthful Folly. Mountain hides a spring—youth needs guidance. A teacher should wait for the student to seek wisdom.",
+    translation: "山下有泉，蒙昧待启。如幼童求学，需良师引导，虚心受教方能开智。",
   },
   "5": {
     name: "需",
@@ -88,7 +88,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：需于酒食，贞吉。",
       "上六：入于穴，有不速之客三人来，敬之终吉。",
     ],
-    translation: "Waiting. Clouds gather before rain—patience is needed. With sincerity and perseverance, one will succeed.",
+    translation: "云聚天上，等待降雨。凡事需耐心等待时机成熟，不可急躁冒进。",
   },
   "6": {
     name: "讼",
@@ -103,7 +103,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：讼，元吉。",
       "上九：或锡之鞶带，终朝三褫之。",
     ],
-    translation: "Conflict. Heaven and water move apart—disagreement arises. Seek compromise early; prolonged conflict brings misfortune.",
+    translation: "天水相违，争讼之象。宜止争修和，退让一步海阔天空，诉讼终无善果。",
   },
   "7": {
     name: "师",
@@ -118,7 +118,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：田有禽，利执言，无咎。长子帅师，弟子舆尸，贞凶。",
       "上六：大君有命，开国承家，小人勿用。",
     ],
-    translation: "The Army. Water hidden in the earth— disciplined forces. A righteous leader is needed for success.",
+    translation: "地中有水，兵众之象。用兵之道在于正义统帅，纪律严明方可胜。",
   },
   "8": {
     name: "比",
@@ -133,7 +133,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：显比，王用三驱，失前禽。邑人不诫，吉。",
       "上六：比之无首，凶。",
     ],
-    translation: "Holding Together. Water rests on earth in unity. Seek alliances with sincerity; mutual support brings success.",
+    translation: "水在地上，亲密相依。团结互助方能成事，择善而从得贵人相助。",
   },
   "9": {
     name: "小畜",
@@ -148,7 +148,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：有孚挛如，富以其邻。",
       "上九：既雨既处，尚德载，妇贞厉。月几望，君子征凶。",
     ],
-    translation: "Taming Power of the Small. Wind blows across heaven—small gathering of force. Patience in small matters leads to progress.",
+    translation: "风行天上，蓄而未下。力量尚弱需蓄积，小事可成大事难就。",
   },
   "10": {
     name: "履",
@@ -163,7 +163,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：夬履，贞厉。",
       "上九：视履考祥，其旋元吉。",
     ],
-    translation: "Treading / Conduct. Treading on a tiger's tail but not bitten—cautious, correct conduct brings safety even in danger.",
+    translation: "脚踏实地，谨慎前行。如履薄冰，小心行事方能无咎。",
   },
   "11": {
     name: "泰",
@@ -178,7 +178,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：帝乙归妹，以祉元吉。",
       "上六：城复于隍，勿用师。自邑告命，贞吝。",
     ],
-    translation: "Peace. Heaven and earth unite—prosperity and harmony prevail. Good fortune in this time of openness and growth.",
+    translation: "天地交泰，万事亨通。上下沟通顺畅，是大展宏图的好时机。",
   },
   "12": {
     name: "否",
@@ -193,7 +193,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：休否，大人吉。其亡其亡，系于苞桑。",
       "上九：倾否，先否后喜。",
     ],
-    translation: "Standstill / Stagnation. Heaven and earth do not communicate—blockage. Retreat and conserve resources; reversal will come.",
+    translation: "天地不交，闭塞不通。小人得势君子退避，宜守不宜进，静待转机。",
   },
   "13": {
     name: "同人",
@@ -208,7 +208,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：同人先号咷而后笑，大师克相遇。",
       "上九：同人于郊，无悔。",
     ],
-    translation: "Fellowship with Men. Fire rises toward heaven—finding kindred spirits. Open-minded fellowship leads to success.",
+    translation: "天火同行，志同道合。与人和同协作，广纳贤才方能成大事。",
   },
   "14": {
     name: "大有",
@@ -223,7 +223,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：厥孚交如威如，吉。",
       "上九：自天祐之，吉无不利。",
     ],
-    translation: "Great Possession. Fire shines in heaven—abundance and greatness. Use your blessings wisely; suppress evil and promote good.",
+    translation: "火在天上，光明普照。事业有成之象，当居安思危，善待天下。",
   },
   "15": {
     name: "谦",
@@ -238,7 +238,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：不富以其邻，利用侵伐，无不利。",
       "上六：鸣谦，利用行师，征邑国。",
     ],
-    translation: "Modesty. A mountain hidden within the earth—the greatest virtue. Modesty brings success in all endeavors.",
+    translation: "地中有山，谦逊之象。才高而不自满，功大而不自夸，谦受益满招损。",
   },
   "16": {
     name: "豫",
@@ -253,7 +253,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：贞疾，恒不死。",
       "上六：冥豫成，有渝无咎。",
     ],
-    translation: "Enthusiasm. Thunder bursts forth from the earth—joy and movement. Act decisively at the right time.",
+    translation: "雷出地奋，欢乐和畅。顺势而为，但不可乐极生悲，须有节制。",
   },
   "17": {
     name: "随",
@@ -268,7 +268,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：孚于嘉，吉。",
       "上六：拘系之，乃从维之。王用亨于西山。",
     ],
-    translation: "Following. Thunder rests within the lake—yielding to the time. Follow what is right with sincerity.",
+    translation: "泽中有雷，随顺之象。顺应时势灵活变通，但不可随波逐流失了主见。",
   },
   "18": {
     name: "蛊",
@@ -283,7 +283,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：干父之蛊，用誉。",
       "上九：不事王侯，高尚其事。",
     ],
-    translation: "Work on What Has Been Spoiled. Wind blows beneath the mountain—decay needs rectification. Undertake necessary reform.",
+    translation: "山下有风，腐败需治。积弊已久当大力整顿，拨乱反正重新出发。",
   },
   "19": {
     name: "临",
@@ -298,7 +298,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：知临，大君之宜，吉。",
       "上六：敦临，吉，无咎。",
     ],
-    translation: "Approach. The lake rises to meet the earth—approaching with benevolence. Teach and protect the people without limit.",
+    translation: "地上有泽，居高临下。以上御下统领众人，宜以德感化而非以力服人。",
   },
   "20": {
     name: "观",
@@ -313,7 +313,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：观我生，君子无咎。",
       "上九：观其生，君子无咎。",
     ],
-    translation: "Contemplation. Wind blows across the earth—observe and reflect. Lead by moral example; the people will be transformed.",
+    translation: "风行地上，观察审视。以高远视角审视全局，以身作则教化他人。",
   },
   "21": {
     name: "噬嗑",
@@ -328,7 +328,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：噬干肉得黄金，贞厉无咎。",
       "上九：何校灭耳，凶。",
     ],
-    translation: "Biting Through. Thunder and lightning unite—break through obstacles. Apply decisive justice.",
+    translation: "口中有物，噬而合之。刚柔分明执法严明，刑狱之事可获亨通。",
   },
   "22": {
     name: "贲",
@@ -343,7 +343,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：贲于丘园，束帛戋戋，吝，终吉。",
       "上九：白贲，无咎。",
     ],
-    translation: "Grace. Fire illuminates beneath the mountain—beauty and adornment. Attend to civil matters with clarity.",
+    translation: "山下有火，文饰之象。文饰有度内外兼修，小事可成大事不宜过分修饰。",
   },
   "23": {
     name: "剥",
@@ -358,7 +358,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：贯鱼以宫人宠，无不利。",
       "上九：硕果不食，君子得舆，小人剥庐。",
     ],
-    translation: "Splitting Apart. The mountain crumbles to earth—decay and decline. Retreat and conserve; this is nature's cycle.",
+    translation: "山附于地，剥落之象。阴盛阳衰小人当道，宜静守不宜妄动。",
   },
   "24": {
     name: "复",
@@ -373,7 +373,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：敦复，无悔。",
       "上六：迷复，凶，有灾眚。用行师，终有大败。以其国君凶，至于十年不克征。",
     ],
-    translation: "Return. Thunder stirs within the earth—renewal and return to the right path. A time of renewal and fresh beginnings.",
+    translation: "雷在地中，一阳来复。冬去春来万物复苏，重新出发正当其时。",
   },
   "25": {
     name: "无妄",
@@ -388,7 +388,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：无妄之疾，勿药有喜。",
       "上九：无妄，行有眚，无攸利。",
     ],
-    translation: "Innocence. Thunder moves beneath heaven—acting without ulterior motives. Follow the natural way without artifice.",
+    translation: "天下雷行，真实无妄。遵循天道不妄为，意外之灾需坦然面对。",
   },
   "26": {
     name: "大畜",
@@ -403,7 +403,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：豶豕之牙，吉。",
       "上九：何天之衢，亨。",
     ],
-    translation: "Great Taming. Heaven's power stored within the mountain—accumulating virtue. Study the past to nourish your character.",
+    translation: "天在山中，大有蓄积。博学多识蓄养贤才，厚积薄发力量无穷。",
   },
   "27": {
     name: "颐",
@@ -418,7 +418,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：拂经，居贞吉，不可涉大川。",
       "上九：由颐，厉吉，利涉大川。",
     ],
-    translation: "Nourishment. Thunder rests beneath the mountain—the jaws. Be careful in speech and moderate in diet.",
+    translation: "山下有雷，颐养之象。慎言节食修身养性，自求口实养正则吉。",
   },
   "28": {
     name: "大过",
@@ -433,7 +433,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：枯杨生华，老妇得其士夫，无咎无誉。",
       "上六：过涉灭顶，凶，无咎。",
     ],
-    translation: "Preponderance of the Great. The lake submerges the tree—excessive burden. Stand firm in your convictions despite difficulty.",
+    translation: "泽灭木没，非常之时。栋梁弯曲需独立不惧，超常规手段解决问题。",
   },
   "29": {
     name: "坎",
@@ -448,7 +448,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：坎不盈，祗既平，无咎。",
       "上六：系用徽纆，寘于丛棘，三岁不得，凶。",
     ],
-    translation: "The Abysmal / Water. Water flows endlessly into danger—persevere with sincerity. Maintain inner strength amid adversity.",
+    translation: "水流不断，重重险阻。心存诚信方可行险而不失其信。",
   },
   "30": {
     name: "离",
@@ -463,7 +463,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：出涕沱若，戚嗟若，吉。",
       "上九：王用出征，有嘉折首，获匪其丑，无咎。",
     ],
-    translation: "The Clinging / Fire. Fire and light cling to what they illuminate—clarity and attachment. A gentle, nurturing strength brings good fortune.",
+    translation: "光明相继，附丽之象。依附正道光明正大，柔顺中正可获亨通。",
   },
   "31": {
     name: "咸",
@@ -478,7 +478,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：咸其脢，无悔。",
       "上六：咸其辅颊舌。",
     ],
-    translation: "Influence / Wooing. Lake upon the mountain—mutual attraction. Be open and receptive to others' influence.",
+    translation: "山上有泽，感应之象。男女相感真情流露，以虚受人方能交感相通。",
   },
   "32": {
     name: "恒",
@@ -493,7 +493,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：恒其德，贞，妇人吉，夫子凶。",
       "上六：振恒，凶。",
     ],
-    translation: "Duration. Thunder and wind together—persistence and constancy. Hold to the right path with steadfastness.",
+    translation: "雷风相与，恒久之道。持之以恒坚守正道，不三心二意方能成事。",
   },
   "33": {
     name: "遁",
@@ -523,7 +523,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：丧羊于易，无悔。",
       "上六：羝羊触藩，不能退，不能遂，无攸利。艰则吉。",
     ],
-    translation: "Great Power. Thunder blazes in heaven—tremendous strength. Use power with propriety; force without propriety brings harm.",
+    translation: "雷在天上，刚强壮盛。阳气壮盛但不可恃强凌弱，守正方吉。",
   },
   "35": {
     name: "晋",
@@ -538,7 +538,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：悔亡，失得勿恤。往吉，无不利。",
       "上九：晋其角，维用伐邑，厉吉无咎，贞吝。",
     ],
-    translation: "Progress. The sun rises above the earth—advancement and recognition. Let your virtue shine for all to see.",
+    translation: "明出地上，光明上进。事业蒸蒸日上，当自昭明德不断进取。",
   },
   "36": {
     name: "明夷",
@@ -553,7 +553,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：箕子之明夷，利贞。",
       "上六：不明晦，初登于天，后入于地。",
     ],
-    translation: "Darkening of the Light. The sun sinks below the earth—brilliance obscured. Conceal your light and endure hardship with integrity.",
+    translation: "明入地中，光明受损。才德之士遭遇暗世，宜韬光养晦晦而明。",
   },
   "37": {
     name: "家人",
@@ -568,7 +568,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：王假有家，勿恤，吉。",
       "上九：有孚威如，终吉。",
     ],
-    translation: "The Family. Wind rises from fire—family order. When the household is in harmony, all under heaven is at peace.",
+    translation: "风自火出，治家之象。言行有信各尽本分，家和万事兴。",
   },
   "38": {
     name: "睽",
@@ -583,7 +583,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：悔亡，厥宗噬肤，往何咎。",
       "上九：睽孤，见豕负涂，载鬼一车，先张之弧，后说之弧，匪寇婚媾，往遇雨则吉。",
     ],
-    translation: "Opposition. Fire above, lake below—divergence. Despite differences, seek common ground and handle small matters carefully.",
+    translation: "上火下泽，背离之象。小事可成大事不宜，异中求同化解矛盾。",
   },
   "39": {
     name: "蹇",
@@ -598,7 +598,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：大蹇朋来。",
       "上六：往蹇来硕，吉。利见大人。",
     ],
-    translation: "Obstruction. Water on the mountain—difficulty ahead. Turn inward and cultivate virtue when facing obstacles.",
+    translation: "山上有水，艰难跋涉。前路险阻宜反省修德，西南平路东北歧途。",
   },
   "40": {
     name: "解",
@@ -613,7 +613,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：君子维有解，吉。有孚于小人。",
       "上六：公用射隼于高墉之上，获之，无不利。",
     ],
-    translation: "Deliverance. Thunder and rain arrive—liberation from difficulty. Forgive faults and release those in error.",
+    translation: "雷雨大作，困境解除。危机已过当宽以待人，既往不咎重新出发。",
   },
   "41": {
     name: "损",
@@ -628,7 +628,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：或益之十朋之龟，弗克违，元吉。",
       "上九：弗损益之，无咎，贞吉，利有攸往，得臣无家。",
     ],
-    translation: "Decrease. Lake at the base of the mountain—reduce excess to nourish what is above. Restrain anger and desire.",
+    translation: "山下有泽，减损之象。适度减损以诚待人，损己利人终有回报。",
   },
   "42": {
     name: "益",
@@ -643,7 +643,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：有孚惠心，勿问元吉。有孚惠我德。",
       "上九：莫益之，或击之，立心勿恒，凶。",
     ],
-    translation: "Increase. Wind and thunder strengthen each other—benefit and growth. Follow the good and correct your faults.",
+    translation: "风雷激荡，增益之象。见善则迁有过则改，利人利己大有裨益。",
   },
   "43": {
     name: "夬",
@@ -658,7 +658,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：苋陆夬夬，中行无咎。",
       "上六：无号，终有凶。",
     ],
-    translation: "Breakthrough. The lake overflows heaven—decisive action. Remove evil firmly but with restraint; avoid excessive force.",
+    translation: "泽上于天，决断之象。果断除弊但不可鲁莽，以德服人方为上策。",
   },
   "44": {
     name: "姤",
@@ -673,7 +673,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：以杞包瓜，含章，有陨自天。",
       "上九：姤其角，吝，无咎。",
     ],
-    translation: "Coming to Meet. Wind blows across heaven—an unexpected encounter. Be wary of insidious influences; act with discernment.",
+    translation: "天下有风，不期而遇。偶然相遇需审慎对待，防微杜渐以免受其害。",
   },
   "45": {
     name: "萃",
@@ -688,7 +688,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：萃有位，无咎。匪孚，元永贞，悔亡。",
       "上六：赍咨涕洟，无咎。",
     ],
-    translation: "Gathering Together. Water rests upon the earth—assembly and union. Maintain vigilance and prepare defenses against the unexpected.",
+    translation: "泽在地上，聚集之象。团结聚集人心所向，以诚感召方能成众。",
   },
   "46": {
     name: "升",
@@ -703,7 +703,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：贞吉，升阶。",
       "上六：冥升，利于不息之贞。",
     ],
-    translation: "Pushing Upward. Wood grows from the earth—gradual ascent. Cultivate virtue steadily; accumulate small gains into great achievement.",
+    translation: "木生于地，上升之象。积小成大循序渐进，步步高升前途光明。",
   },
   "47": {
     name: "困",
@@ -718,7 +718,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：劓刖，困于赤绂，乃徐有说，利用祭祀。",
       "上六：困于葛藟，于臲卼，曰动悔。有悔，征吉。",
     ],
-    translation: "Oppression / Exhaustion. The lake has no water—adversity. Even in dire circumstances, maintain your integrity and see it through.",
+    translation: "泽无水穷，困境之象。身处困境不失志向，穷且益坚不坠青云之志。",
   },
   "48": {
     name: "井",
@@ -733,7 +733,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：井冽寒泉，食。",
       "上六：井收勿幕，有孚元吉。",
     ],
-    translation: "The Well. Water drawn from a well sustains life—fundamental nourishment. Maintain the well; the community depends on it.",
+    translation: "木上有水，水井之象。养人济世不可废弃，改邑不改井恒常不变。",
   },
   "49": {
     name: "革",
@@ -748,7 +748,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：大人虎变，未占有孚。",
       "上六：君子豹变，小人革面，征凶，居贞吉。",
     ],
-    translation: "Revolution. Fire within the lake—transformation. Reform must come at the right time and be carried out with conviction.",
+    translation: "泽中有火，变革之象。顺天应人革故鼎新，时机成熟方可行动。",
   },
   "50": {
     name: "鼎",
@@ -763,7 +763,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：鼎黄耳金铉，利贞。",
       "上九：鼎玉铉，大吉，无不利。",
     ],
-    translation: "The Cauldron. Fire below wood—cooking and nourishment. The vessel of civilization; establish your position and fulfill your destiny.",
+    translation: "木上有火，烹饪之象。革故鼎新取新去旧，正位凝命吉祥亨通。",
   },
   "51": {
     name: "震",
@@ -778,7 +778,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：震往来厉，亿无丧，有事。",
       "上六：震索索，视矍矍，征凶。震不于其躬，于其邻，无咎。婚媾有言。",
     ],
-    translation: "Thunder. Thunder repeated—shock and awakening. Even in fear, maintain composure and use it as a call to self-reflection.",
+    translation: "洊雷震动，惊惧之象。临危不惧处变不惊，恐惧修省终获福报。",
   },
   "52": {
     name: "艮",
@@ -793,7 +793,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：艮其辅，言有序，悔亡。",
       "上九：敦艮，吉。",
     ],
-    translation: "Keeping Still. Mountain upon mountain—stillness. Know when to stop and when to act; keep your thoughts within your station.",
+    translation: "两山重叠，止住之象。当止则止时止时行，各安其位不相侵扰。",
   },
   "53": {
     name: "渐",
@@ -808,7 +808,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：鸿渐于陵，妇三岁不孕，终莫之胜，吉。",
       "上九：鸿渐于逵，其羽可用为仪，吉。",
     ],
-    translation: "Development / Gradual Progress. Wood grows slowly on the mountain—orderly advancement. Progress step by step with patience.",
+    translation: "山上有木，循序渐进。按部就班稳步推进，积小成大终成大业。",
   },
   "54": {
     name: "归妹",
@@ -823,7 +823,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：帝乙归妹，其君之袂不如其娣之袂良。月几望，吉。",
       "上六：女承筐无实，士刲羊无血，无攸利。",
     ],
-    translation: "The Marrying Maiden. Thunder above the lake—union and consequences. Recognize the consequences of action; every union has limits.",
+    translation: "泽上有雷，婚嫁之象。循礼而行不可苟合，急于求成反致灾殃。",
   },
   "55": {
     name: "丰",
@@ -838,7 +838,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：来章，有庆誉，吉。",
       "上六：丰其屋，蔀其家，窥其户，阒其无人，三岁不觌，凶。",
     ],
-    translation: "Abundance. Thunder and lightning arrive together—fullness. Even at the zenith, know that decline follows; enjoy but do not worry.",
+    translation: "雷电交加，丰盛之象。盛大丰满宜照天下，丰极必衰宜保持中正。",
   },
   "56": {
     name: "旅",
@@ -853,7 +853,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：射雉一矢亡，终以誉命。",
       "上九：鸟焚其巢，旅人先笑后号咷，丧牛于易，凶。",
     ],
-    translation: "The Wanderer. Fire upon the mountain—traveling. Be modest and adaptable while traveling; avoid arrogance.",
+    translation: "山上有火，旅行之象。旅途在外谨慎小心，柔顺中正方可小亨。",
   },
   "57": {
     name: "巽",
@@ -868,7 +868,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：贞吉悔亡，无不利。无初有终。先庚三日，后庚三日，吉。",
       "上九：巽在床下，丧其资斧，贞凶。",
     ],
-    translation: "The Gentle / Wind. Wind follows wind—penetration and gentle influence. Issue commands clearly; follow through with persistence.",
+    translation: "随风顺行，谦逊之象。以柔顺之德深入细致，反复申令教化众人。",
   },
   "58": {
     name: "兑",
@@ -883,7 +883,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：孚于剥，有厉。",
       "上六：引兑。",
     ],
-    translation: "The Joyous / Lake. Lake reflects lake—joy and exchange. Find joy in friendship, learning, and honest discourse.",
+    translation: "丽泽相映，喜悦之象。以言语感悦他人，讲习道义朋友讲习。",
   },
   "59": {
     name: "涣",
@@ -898,7 +898,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：涣汗其大号，涣王居，无咎。",
       "上九：涣其血去逖出，无咎。",
     ],
-    translation: "Dispersion. Wind scatters across the water—dissolution. Renew spiritual bonds; unite through shared purpose.",
+    translation: "风行水上，涣散之象。拯救涣散先祭祀立庙，聚合人心方能济险。",
   },
   "60": {
     name: "节",
@@ -913,7 +913,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：甘节，吉，往有尚。",
       "上六：苦节，贞凶，悔亡。",
     ],
-    translation: "Limitation. Water rests upon the lake—boundaries and moderation. Set proper limits; excessive restriction brings suffering.",
+    translation: "泽上有水，节制之象。适度节制不可苦节，亨通但需把握分寸。",
   },
   "61": {
     name: "中孚",
@@ -928,7 +928,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：有孚挛如，无咎。",
       "上九：翰音登于天，贞凶。",
     ],
-    translation: "Inner Truth. Wind blows over the lake—sincerity touches all. Even fish can be moved by genuine truth; be authentic.",
+    translation: "泽上有风，诚信之象。至诚感通如豚鱼吉，诚信方可涉险济难。",
   },
   "62": {
     name: "小过",
@@ -943,7 +943,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：密云不雨，自我西郊。公弋取彼在穴。",
       "上六：弗遇过之，飞鸟离之，凶，是谓灾眚。",
     ],
-    translation: "Small Exceeding. Thunder upon the mountain—minor excess. In small things be careful; humility and moderation are essential.",
+    translation: "山上有雷，小有过越。小事可过大事不宜，行过乎恭丧过乎哀。",
   },
   "63": {
     name: "既济",
@@ -958,7 +958,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "九五：东邻杀牛，不如西邻之禴祭，实受其福。",
       "上六：濡其首，厉。",
     ],
-    translation: "After Completion. Water above fire—task accomplished. But completion is not final; remain vigilant against decline.",
+    translation: "水在火上，功成之象。事已成就当思守成，初吉终乱居安思危。",
   },
   "64": {
     name: "未济",
@@ -973,7 +973,7 @@ export const HEXAGRAM_DATABASE: Record<string, HexagramEntry> = {
       "六五：贞吉，无悔。君子之光，有孚，吉。",
       "上九：有孚于饮酒，无咎。濡其首，有孚失是。",
     ],
-    translation: "Before Completion. Fire above water—task not yet finished. The cycle continues; every ending is a new beginning. Proceed with caution."
+    translation: "火在水上，未竟之象。事尚未成继续努力，慎辨物居方终能成功。"
   }
 };
 

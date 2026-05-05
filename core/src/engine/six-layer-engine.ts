@@ -667,26 +667,88 @@ export class SixLayerFusionEngine {
     eightChars: { year: string; month: string; day: string; hour: string },
     key: DivinationKey
   ): { counts: Record<string, number>; status: string; flow: string } {
-    // 简化的五行计数
-    const counts: Record<string, number> = { '木': 2, '火': 1, '土': 1, '金': 2, '水': 1 };
-    
-    // 根据卦名调整
-    const hexagramFiveElements: Record<string, string> = {
-      '乾': '金', '坤': '土', '震': '木', '巽': '木', '坎': '水', '离': '火', '艮': '土', '兑': '金',
+    const counts: Record<string, number> = { '木': 0, '火': 0, '土': 0, '金': 0, '水': 0 };
+
+    // 天干五行映射
+    const stemElements: Record<string, string> = {
+      '甲': '木', '乙': '木', '丙': '火', '丁': '火', '戊': '土',
+      '己': '土', '庚': '金', '辛': '金', '壬': '水', '癸': '水',
     };
-    const upperTrigram = key.hexagramName.charAt(0);
-    const element = hexagramFiveElements[upperTrigram];
-    if (element) counts[element] += 2;
+    // 地支五行映射
+    const branchElements: Record<string, string> = {
+      '子': '水', '丑': '土', '寅': '木', '卯': '木', '辰': '土', '巳': '火',
+      '午': '火', '未': '土', '申': '金', '酉': '金', '戌': '土', '亥': '水',
+    };
+
+    // 解析八字四柱（年月日时，每柱=天干+地支）
+    const pillars = [eightChars.year, eightChars.month, eightChars.day, eightChars.hour];
+    for (const pillar of pillars) {
+      if (pillar.length >= 2) {
+        const stemEl = stemElements[pillar.charAt(0)];
+        const branchEl = branchElements[pillar.charAt(1)];
+        if (stemEl) counts[stemEl] += 1;
+        if (branchEl) counts[branchEl] += 1;
+      }
+    }
+
+    // 纳音五行（每柱天干地支组合的纳音）——简化取前60甲子纳音
+    const nayinMap: Record<string, string> = {
+      '甲子': '金', '乙丑': '金', '丙寅': '火', '丁卯': '火', '戊辰': '木', '己巳': '木',
+      '庚午': '土', '辛未': '土', '壬申': '金', '癸酉': '金', '甲戌': '火', '乙亥': '火',
+      '丙子': '水', '丁丑': '水', '戊寅': '土', '己卯': '土', '庚辰': '金', '辛巳': '金',
+      '壬午': '木', '癸未': '木', '甲申': '水', '乙酉': '水', '丙戌': '土', '丁亥': '土',
+      '戊子': '火', '己丑': '火', '庚寅': '木', '辛卯': '木', '壬辰': '水', '癸巳': '水',
+      '甲午': '金', '乙未': '金', '丙申': '火', '丁酉': '火', '戊戌': '木', '己亥': '木',
+      '庚子': '土', '辛丑': '土', '壬寅': '金', '癸卯': '金', '甲辰': '火', '乙巳': '火',
+      '丙午': '水', '丁未': '水', '戊申': '土', '己酉': '土', '庚戌': '金', '辛亥': '金',
+      '壬子': '木', '癸丑': '木', '甲寅': '水', '乙卯': '水', '丙辰': '土', '丁巳': '土',
+      '戊午': '火', '己未': '火', '庚申': '木', '辛酉': '木', '壬戌': '水', '癸亥': '水',
+    };
+    for (const pillar of pillars) {
+      const nayinEl = nayinMap[pillar];
+      if (nayinEl) counts[nayinEl] += 1;
+    }
+
+    // 卦象五行——通过getHexagramTrigrams获取上下卦再映射
+    const hexagramFiveElements: Record<string, string> = {
+      '乾': '金', '兑': '金', '离': '火', '震': '木', '巽': '木', '坎': '水', '艮': '土', '坤': '土',
+    };
+    const trigrams = this.getHexagramTrigrams(key.hexagramName);
+    const upperEl = hexagramFiveElements[trigrams[0]];
+    const lowerEl = hexagramFiveElements[trigrams[1]];
+    if (upperEl) counts[upperEl] += 2;  // 上卦主象权重+2
+    if (lowerEl) counts[lowerEl] += 1;  // 下卦辅助+1
+
+    // 变爻五行——如果有变卦，变卦的上下卦五行也纳入
+    if (key.secondaryHexagram) {
+      const changedTrigrams = this.getHexagramTrigrams(key.secondaryHexagram);
+      const changedUpperEl = hexagramFiveElements[changedTrigrams[0]];
+      const changedLowerEl = hexagramFiveElements[changedTrigrams[1]];
+      if (changedUpperEl) counts[changedUpperEl] += 1;
+      if (changedLowerEl) counts[changedLowerEl] += 1;
+    }
 
     // 判断平衡状态
-    const max = Math.max(...Object.values(counts));
-    const min = Math.min(...Object.values(counts));
-    const status = max - min > 2 ? '偏胜' : '基本平衡';
-	
-	// 生克流向
-	const flow = '木→火→土→金→水→木';
+    const values = Object.values(counts);
+    const max = Math.max(...values);
+    const min = Math.min(...values);
+    const total = values.reduce((s, v) => s + v, 0);
+    const avg = total / 5;
+    const deviation = max > 0 ? Math.abs(max - avg) / avg : 0;
+    let status: string;
+    if (deviation > 0.6) {
+      // 找出最强和最弱
+      const strongest = Object.entries(counts).sort((a, b) => b[1] - a[1])[0][0];
+      const weakest = Object.entries(counts).sort((a, b) => a[1] - b[1])[0][0];
+      status = `${strongest}旺${weakest}弱`;
+    } else {
+      status = '五行基本平衡';
+    }
 
-	return { counts, status, flow };
+    // 生克流向
+    const flow = '木→火→土→金→水→木';
+
+    return { counts, status, flow };
   }
 
   private calculateStemsBranches(eightChars: any): { combined: string[]; clashes: string[] } {
@@ -711,17 +773,59 @@ export class SixLayerFusionEngine {
 
   private detectCompetition(key: DivinationKey, domain?: string): boolean {
     // 竞争检测：某些卦象在特定领域暗示竞争
-    if (domain === 'career' || domain === 'relationship') {
-      const competitiveHexagrams = ['讼', '夬', '姤', '革', '鼎'];
-      return competitiveHexagrams.includes(key.hexagramName);
-    }
+    // 综合考虑本卦和变卦
+    // 扩展竞争卦列表——基于传统易学中具有对抗、竞争含义的卦
+    const competitiveHexagrams = [
+      '讼',   // 天水讼——争讼，直接对抗
+      '夬',   // 泽天夬——决断，刚决柔
+      '姤',   // 天风姤——不期而遇，暗中较量
+      '革',   // 泽火革——变革，推翻
+      '鼎',   // 火风鼎——鼎革，权力更替
+      '师',   // 地水师——行军征战
+      '比',   // 地水比——争比竞争
+      '睽',   // 火泽睽——乖离对立
+      '噬嗑', // 火雷噬嗑——咬合去除障碍
+      '乾',   // 乾为天——纯阳刚健，竞争进取
+      '大壮', // 雷天大壮——阳刚壮盛
+      '决',   // 注意：夬的异体
+    ];
+    
+    // 检查本卦
+    if (competitiveHexagrams.includes(key.hexagramName)) return true;
+    
+    // 检查变卦
+    if (key.secondaryHexagram && competitiveHexagrams.includes(key.secondaryHexagram)) return true;
+    
     return false;
   }
 
   private getTimingStrength(monthPillar: string): string {
-    // 根据月令判断天时
-    // 实际应分析日主与月令的生克关系
-    return '中和';
+    // 根据月令地支判断天时旺衰
+    if (!monthPillar || monthPillar.length < 2) return '中和';
+    
+    const branch = monthPillar.charAt(1);
+    
+    // 地支五行与季节对应
+    const seasonMap: Record<string, { element: string; season: string }> = {
+      '寅': { element: '木', season: '春' },
+      '卯': { element: '木', season: '春' },
+      '巳': { element: '火', season: '夏' },
+      '午': { element: '火', season: '夏' },
+      '申': { element: '金', season: '秋' },
+      '酉': { element: '金', season: '秋' },
+      '亥': { element: '水', season: '冬' },
+      '子': { element: '水', season: '冬' },
+      '辰': { element: '土', season: '季月' },
+      '戌': { element: '土', season: '季月' },
+      '丑': { element: '土', season: '季月' },
+      '未': { element: '土', season: '季月' },
+    };
+    
+    const info = seasonMap[branch];
+    if (!info) return '中和';
+    
+    // 返回当前旺相的元素和季节信息
+    return `${info.season}${info.element}旺`;
   }
 
   private calculateResonance(dayMaster: string, domain?: string): string {
@@ -956,13 +1060,17 @@ export class SixLayerFusionEngine {
     
     let result = auspiciousMap[hexagramName] || '平';
     
-    // 变爻影响
+    // 变爻影响——根据变爻位置和数量确定性修正吉凶
     if (changingLines.length > 0) {
-      // 动爻可能改变吉凶
-      // 实际应根据变爻对应卦辞的吉凶来修正
+      // 确定性修正：变爻位置之和决定吉凶变化方向
+      // 偶数和=向好（阳动生发），奇数和=向差（阴动收敛）
+      const sumPositions = changingLines.reduce((s, p) => s + p, 0);
+      const direction = sumPositions % 2 === 0 ? -1 : 1; // 偶数向好(索引减小)，奇数向差(索引增大)
+      // 变爻越多变化越大
+      const shift = Math.min(changingLines.length, Math.abs(direction));
       const adjustment = ['大吉', '吉', '小吉', '平', '小凶', '凶', '大凶'];
       const currentIndex = adjustment.indexOf(result);
-      const newIndex = Math.max(0, Math.min(6, currentIndex + (Math.random() > 0.5 ? 1 : -1)));
+      const newIndex = Math.max(0, Math.min(6, currentIndex + direction * shift));
       result = adjustment[newIndex] as YiLiLayer['auspiciousness'];
     }
     
@@ -992,41 +1100,77 @@ export class SixLayerFusionEngine {
     context: HolisticPersonContext,
     changingLines: number[]
   ): YiLiLayer['timeFrame'] {
-    // 应期推算（基于变爻）
+    // 应期推算（基于变爻位置、卦象性质、问事领域综合判断）
     const now = context.question?.askTime || new Date();
     const oneMonth = 30 * 24 * 60 * 60 * 1000;
     
-    // 发用时间（当前）
+    // 变爻位置影响应期远近（下爻=近期，上爻=远期）
+    // 爻位从1(初爻)到6(上爻)，位置越高应期越远
+    const avgPosition = changingLines.length > 0
+      ? changingLines.reduce((s, p) => s + p, 0) / changingLines.length
+      : 3;
+    
+    // 卦象速度属性——不同卦有不同的"动静"特征
+    const fastHexagrams = ['震', '离', '兑', '大壮', '丰', '噬嗑'];  // 雷火等动性卦
+    const slowHexagrams = ['艮', '坤', '坎', '蹇', '困', '剥'];      // 山水等静性卦
+    let speedFactor = 1.0;
+    if (fastHexagrams.includes(key.hexagramName)) speedFactor = 0.7;
+    else if (slowHexagrams.includes(key.hexagramName)) speedFactor = 1.5;
+    
+    // 问事领域影响——小事快大事慢
+    const domain = context.question?.domain || 'general';
+    const domainSpeed: Record<string, number> = {
+      'health': 0.8,    // 健康问题反应较快
+      'lost': 0.6,      // 寻人寻物最急
+      'wealth': 1.0,    // 财运中等
+      'career': 1.3,    // 事业变化较慢
+      'relationship': 1.2, // 感情变化中等偏慢
+      'study': 1.0,     // 学业中等
+      'general': 1.0,
+    };
+    speedFactor *= (domainSpeed[domain] || 1.0);
+    
+    // 发用时间
     const effective = '即日起';
     
-    // 转折点
-    let transition = '短期内';
-    if (changingLines.length === 1) transition = '一月内';
-    else if (changingLines.length === 2) transition = '二月内';
-    else if (changingLines.length === 3) transition = '三月内';
+    // 转折点——根据变爻位置和速度因子计算
+    const baseMonths = changingLines.length > 0 ? Math.max(1, Math.round(avgPosition * 0.5 * speedFactor)) : 2;
+    let transition: string;
+    if (baseMonths <= 1) transition = '一月内';
+    else if (baseMonths <= 2) transition = '二月内';
+    else if (baseMonths <= 3) transition = '三月内';
+    else transition = `${baseMonths}月内`;
     
-    // 应期（最终期限）
-    let deadline = '半年内方显';
-    if (changingLines.length > 0) {
-      const transitionDate = new Date(now.getTime() + changingLines.length * oneMonth * 2);
-      deadline = transitionDate.toLocaleDateString('zh-CN') + '前后应验';
-    }
-
-    // 概率性时间节点
+    // 应期（最终期限）——综合变爻数量、位置和速度
+    const baseDeadline = changingLines.length > 0
+      ? Math.max(2, Math.round(changingLines.length * avgPosition * 0.6 * speedFactor))
+      : 6;
+    let deadline: string;
+    if (baseDeadline <= 1) deadline = '近期应验';
+    else if (baseDeadline <= 3) deadline = `${baseDeadline}个月内应验`;
+    else deadline = `${baseDeadline}个月内方显`;
+    
+    // 概率性时间节点——根据综合因素分层
     const changingCount = changingLines.length || 1;
+    const p1Months = Math.max(1, Math.round(changingCount * 0.8 * speedFactor));
+    const p2Months = Math.max(p1Months + 1, Math.round(changingCount * 1.5 * speedFactor));
+    const p3Months = Math.max(p2Months + 2, Math.round(changingCount * 3 * speedFactor));
+    
     const probabilityRanges: YiLiLayer['timeFrame']['probabilityRanges'] = [
       {
-        period: `${changingCount}个月内`,
-        probability: 0.7,
-        condition: '主动推进且条件具备时，最高概率在此期间应验',
+        period: `${p1Months}个月内`,
+        probability: changingLines.length > 0 ? 0.75 : 0.5,
+        condition: changingLines.length > 0
+          ? `变爻在${avgPosition <= 3 ? '下' : '上'}卦，${fastHexagrams.includes(key.hexagramName) ? '卦象主动，' : ''}主动推进可加速应验`
+          : '无变爻，需等待外部条件触发',
       },
       {
-        period: `${Math.max(changingCount * 2, 3)}个月内`,
-        probability: 0.45,
-        condition: '若前期未显，则中期转折点出现时可能触发',
+        period: `${p2Months}个月内`,
+        probability: changingLines.length > 0 ? 0.5 : 0.35,
+        condition: '中期转折点，需耐心等待时机成熟',
       },
       {
-        period: `${Math.max(changingCount * 3, 6)}个月内`,
+        period: `${p3Months}个月内`,
         probability: 0.25,
         condition: '延迟应验，需外部条件变化或心境转变后方可显现',
       },

@@ -229,8 +229,8 @@ export class HybridAIEngine extends EventEmitter {
   private async initLocalEngine(): Promise<void> {
     // 在Node.js/Tauri环境中动态导入
     if (typeof window === 'undefined') {
-      const { LocalAIEngine } = await import('./local-engine');
-      this.localEngine = new LocalAIEngine({
+      const { LocalInferenceEngine } = await import('./local-engine');
+      this.localEngine = new LocalInferenceEngine({
         modelPath: this.config.localModelPath || '',
         gpuLayers: this.config.gpuLayers || 35,
         contextSize: this.config.contextSize || 4096,

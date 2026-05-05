@@ -26,11 +26,8 @@
   ],
   "author": "zhangtongdage",
   "license": "MIT",
-  "dependencies": {
-    "node-llama-cpp": "^3.0.0"
-  },
   "optionalDependencies": {
-    "node-llama-cpp": "^3.0.0"
+    "node-llama-cpp": "^3.16.2"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

@@ -1,176 +1,121 @@
 /**
- * 本地GGUF推理引擎 - 基于 node-llama-cpp
- * 
- * 在原有API模式基础上增加本地模型推理能力
- * 模型文件: models/xuanji-interpreter.gguf
+ * 本地GGUF模型推理引擎
+ * 基于 node-llama-cpp 实现本地Qwen2推理
  */
 
-import { getLlama, LlamaChatSession, Llama, LlamaModel, LlamaContext } from 'node-llama-cpp';
-import path from 'path';
-import fs from 'fs';
+import * as path from 'path';
+import * as fs from 'fs';
+import { InferenceRequest, InferenceResult } from './ai-engine';
 
-// ==================== 类型定义 ====================
+let getLlama: any = null;
+let LlamaChatSession: any = null;
+let _importAttempted = false;
 
-export type AIMode = 'api' | 'local';
-
-export interface LocalAIConfig {
-  mode: 'local';
-  modelPath: string;        // GGUF模型路径
-  contextSize: number;      // 上下文窗口大小
-  gpuLayers: number;        // GPU加速层数 (0=纯CPU)
-  temperature: number;
-  maxTokens: number;
+async function ensureNodeLlamaCpp(): Promise<boolean> {
+  if (_importAttempted) return !!getLlama;
+  _importAttempted = true;
+  try {
+    const nodeLlamaCpp = await import('node-llama-cpp');
+    getLlama = nodeLlamaCpp.getLlama;
+    LlamaChatSession = nodeLlamaCpp.LlamaChatSession;
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-export interface InferenceRequest {
-  divinationContext: {
-    personInfo: any;
-    question: any;
-    hexagram: any;
-    classics: any[];
-  };
-  task: 'interpret' | 'classics_match' | 'trend_analysis' | 'suggestion';
-  complexity: 'simple' | 'standard' | 'deep';
-  systemPrompt?: string;
+export interface LocalModelConfig {
+  modelPath: string;
+  contextSize?: number;      // 上下文窗口大小，默认2048
+  gpuLayers?: number;        // GPU层数，-1=自动
+  temperature?: number;      // 生成温度，默认0.7
+  maxTokens?: number;        // 最大生成token数，默认1024
 }
 
-export interface InferenceResult {
-  content: string;
-  confidence: number;
-  source: 'local';
-  latency: number;
-  modelUsed: string;
-  citations: string[];
-}
-
-// ==================== 默认配置 ====================
-
-const DEFAULT_LOCAL_CONFIG: LocalAIConfig = {
-  mode: 'local',
-  modelPath: '',  // 运行时自动查找
-  contextSize: 4096,
-  gpuLayers: 35,  // RTX 4060 可以加速全部层
+const DEFAULT_LOCAL_CONFIG: Required<LocalModelConfig> = {
+  modelPath: '',
+  contextSize: 2048,
+  gpuLayers: -1,
   temperature: 0.7,
-  maxTokens: 2048,
+  maxTokens: 1024,
 };
 
-// ==================== 本地推理引擎 ====================
+/**
+ * 本地推理引擎 - 使用 node-llama-cpp 加载 GGUF 模型
+ */
+export class LocalInferenceEngine {
+  private config: Required<LocalModelConfig>;
+  private llama: any = null;
+  private model: any = null;
+  private context: any = null;
+  private session: any = null;
+  private initialized = false;
 
-export class LocalAIEngine {
-  private config: LocalAIConfig;
-  private llama: Llama | null = null;
-  private model: LlamaModel | null = null;
-  private context: LlamaContext | null = null;
-  private session: LlamaChatSession | null = null;
-  private ready: boolean = false;
-
-  constructor(config: Partial<LocalAIConfig> = {}) {
+  constructor(config: LocalModelConfig) {
     this.config = { ...DEFAULT_LOCAL_CONFIG, ...config };
   }
 
   /**
-   * 查找模型文件
-   */
-  private findModelPath(): string {
-    if (this.config.modelPath && fs.existsSync(this.config.modelPath)) {
-      return this.config.modelPath;
-    }
-
-    // 按优先级查找
-    const searchPaths = [
-      // 开发环境
-      path.join(process.cwd(), 'models', 'xuanji-interpreter.gguf'),
-      path.join(process.cwd(), '..', 'models', 'xuanji-interpreter.gguf'),
-      // Tauri打包环境
-      path.join(process.cwd(), 'src-tauri', 'models', 'xuanji-interpreter.gguf'),
-      // 安装环境
-      path.join(process.env.HOME || '~', '.xuanji', 'models', 'xuanji-interpreter.gguf'),
-      // 同级目录
-      path.join(__dirname, '..', 'models', 'xuanji-interpreter.gguf'),
-    ];
-
-    for (const p of searchPaths) {
-      if (fs.existsSync(p)) {
-        return p;
-      }
-    }
-
-    throw new Error(
-      '找不到模型文件 xuanji-interpreter.gguf\n' +
-      '请将模型放在以下位置之一:\n' +
-      searchPaths.map(p => `  - ${p}`).join('\n')
-    );
-  }
-
-  /**
-   * 初始化引擎
+   * 初始化：加载模型到内存/GPU，创建推理会话
    */
   async initialize(): Promise<void> {
-    console.log('[LocalAI] 初始化本地推理引擎...');
+    if (this.initialized) return;
+    const loaded = await ensureNodeLlamaCpp();
+    if (!loaded || !getLlama) {
+      throw new Error('node-llama-cpp 未安装。请运行: cd core && npm install node-llama-cpp');
+    }
 
-    const modelPath = this.findModelPath();
-    console.log(`[LocalAI] 模型路径: ${modelPath}`);
+    const modelPath = path.resolve(this.config.modelPath);
+    if (!fs.existsSync(modelPath)) {
+      throw new Error(`模型文件不存在: ${modelPath}`);
+    }
 
-    // 检查模型文件大小
-    const stat = fs.statSync(modelPath);
-    const sizeMB = stat.size / 1024 / 1024;
-    console.log(`[LocalAI] 模型大小: ${sizeMB.toFixed(0)}MB`);
-
-    // 初始化 llama.cpp
+    // 加载 llama 后端
     this.llama = await getLlama();
-    console.log('[LocalAI] llama.cpp 后端初始化完成');
 
-    // 加载模型
+    // 加载 GGUF 模型
     this.model = await this.llama.loadModel({
       modelPath,
       gpuLayers: this.config.gpuLayers,
     });
-    console.log(`[LocalAI] 模型加载完成 (GPU层: ${this.config.gpuLayers})`);
 
-    // 创建上下文
+    // 创建推理上下文
     this.context = await this.model.createContext({
       contextSize: this.config.contextSize,
     });
 
-    // 创建对话会话
+    // 创建聊天会话（systemPrompt 在这里设置）
     this.session = new LlamaChatSession({
       contextSequence: this.context.getSequence(),
+      systemPrompt: '你是一位精通中华传统术数的卜算大师，擅长六爻、八字、梅花易数、奇门遁甲。请根据卦象信息给出专业解读。',
     });
 
-    this.ready = true;
-    console.log('[LocalAI] 引擎初始化完成 ✅');
+    this.initialized = true;
   }
 
   /**
-   * 执行推理
+   * 发送推理请求
    */
   async infer(request: InferenceRequest): Promise<InferenceResult> {
-    if (!this.ready || !this.session) {
-      throw new Error('引擎未初始化，请先调用 initialize()');
+    if (!this.initialized || !this.session) {
+      throw new Error('本地引擎未初始化，请先调用 initialize()');
     }
 
     const startTime = Date.now();
-    const prompt = this.buildPrompt(request);
-    const systemMsg = request.systemPrompt || 
-      '你是一位精通中国传统术数的AI解卦师，擅长易经六爻、梅花易数、奇门遁甲、子平八字等卜筮学问。请根据卦象信息给出专业、准确、实用的解读。';
 
     try {
-      // 使用 system prompt + 用户 prompt
+      const prompt = this.buildPrompt(request);
       const response = await this.session.prompt(prompt, {
-        systemPrompt: systemMsg,
-        temperature: this.config.temperature,
         maxTokens: this.config.maxTokens,
+        temperature: this.config.temperature,
       });
-
       return {
         content: response,
-        confidence: 0.85,
+        confidence: 0.7,
         source: 'local',
         latency: Date.now() - startTime,
-        modelUsed: 'xuanji-1.5b',
-        citations: request.divinationContext.classics.map(
-          (c: any) => `${c.title}·${c.chapter}`
-        ),
+        modelUsed: path.basename(this.config.modelPath),
+        citations: [],
       };
     } catch (error) {
       throw new Error(`本地推理失败: ${(error as Error).message}`);
@@ -178,85 +123,107 @@ export class LocalAIEngine {
   }
 
   /**
-   * 流式推理
-   */
-  async *inferStream(request: InferenceRequest): AsyncGenerator<string, void, unknown> {
-    if (!this.ready || !this.session) {
-      throw new Error('引擎未初始化');
-    }
-
-    const prompt = this.buildPrompt(request);
-    const systemMsg = request.systemPrompt || 
-      '你是一位精通中国传统术数的AI解卦师。';
-
-    // node-llama-cpp 的 stream 支持
-    const response = await this.session.prompt(prompt, {
-      systemPrompt,
-      temperature: this.config.temperature,
-      maxTokens: this.config.maxTokens,
-      yieldDelayedTokens: true,
-    });
-
-    // 简化实现：直接返回完整结果
-    yield response;
-  }
-
-  /**
-   * 获取引擎状态
-   */
-  getStatus() {
-    return {
-      ready: this.ready,
-      mode: 'local' as const,
-      modelPath: this.config.modelPath,
-      gpuLayers: this.config.gpuLayers,
-      contextSize: this.config.contextSize,
-    };
-  }
-
-  /**
-   * 构建提示词
+   * 构建推理提示词
    */
   private buildPrompt(request: InferenceRequest): string {
-    const { personInfo, question, hexagram, classics } = request.divinationContext;
+    const ctx = request.divinationContext;
+    const parts: string[] = [];
 
-    const complexityDesc: Record<string, string> = {
-      simple: '请给出简明扼要的解读，150字以内。',
-      standard: '请给出标准深度的解读，结合卦象和典籍。',
-      deep: '请给出深度解读，包括趋势分析、应期、吉凶和行动建议。',
-    };
+    // 人象信息
+    if (ctx.personInfo) {
+      const p = ctx.personInfo;
+      parts.push(`【求测人信息】`);
+      parts.push(`姓名：${p.name || '匿名'}`);
+      if (p.birthDate) {
+        parts.push(`生辰：农历${p.birthDate.lunarYear}年${p.birthDate.lunarMonth}月${p.birthDate.lunarDay}日${p.birthDate.isLeap ? '(闰月)' : ''}`);
+        if (p.birthDate.yearGanZhi) parts.push(`年柱：${p.birthDate.yearGanZhi}`);
+      }
+      if (p.birthplace) parts.push(`出生地：${p.birthplace}`);
+      parts.push(`性别：${p.gender === 'female' ? '女' : '男'}`);
+    }
 
-    const classicsText = classics.length > 0
-      ? `\n\n【典籍引用】：\n${classics.map((c: any) => {
-          const base = `《${c.title}》·${c.chapter}：${c.quote}`;
-          return c.translation ? `${base}\n  白话：${c.translation}` : base;
-        }).join('\n')}`
-      : '';
+    // 问事信息
+    if (ctx.question) {
+      const q = ctx.question;
+      parts.push('');
+      parts.push(`【问事信息】`);
+      parts.push(`类别：${q.category?.domain || '综合'}`);
+      parts.push(`问题：${q.description || '综合询问'}`);
+      if (q.mentalState) parts.push(`心绪：${q.mentalState}`);
+    }
 
-    return `【卜筮】${personInfo.name} 问：${question.description}
+    // 卦象信息
+    if (ctx.hexagram) {
+      const h = ctx.hexagram;
+      parts.push('');
+      parts.push(`【卦象信息】`);
+      parts.push(`本卦：${h.primary}`);
+      if (h.changing) parts.push(`变卦：${h.changing}`);
+      if (h.lines) parts.push(`爻变：${h.lines.join(' ')}`);
+    }
 
-【生辰】${personInfo.birthDate.yearGanZhi}年 ${personInfo.birthDate.isLeap ? '闰' : ''}${personInfo.birthDate.lunarMonth}月${personInfo.birthDate.lunarDay}日
-【性别】${personInfo.gender === 'male' ? '男' : '女'}
-【出生地】${personInfo.birthplace}
+    // 经典引用
+    if (ctx.classics && ctx.classics.length > 0) {
+      parts.push('');
+      parts.push(`【相关典籍】`);
+      for (const c of ctx.classics) {
+        parts.push(`《${c.title}》${c.chapter ? `·${c.chapter}` : ''}：${c.quote}`);
+        if (c.translation) parts.push(`  白话：${c.translation}`);
+      }
+    }
 
-【本卦】${hexagram.primary}${hexagram.changing ? ` → ${hexagram.changing}` : ''}
-【爻象】${hexagram.lines.map((l: boolean) => l ? '━━━━━' : '━ ━━').join(' ')}${classicsText}
+    parts.push('');
+    parts.push(`请结合以上信息，从${ctx.question?.category?.domain || '综合'}角度给出详细的卜算解读。`);
 
-${complexityDesc[request.complexity] || complexityDesc.standard}`;
+    return parts.join('\n');
   }
 
   /**
    * 释放资源
    */
   async dispose(): Promise<void> {
+    this.session = null;
     if (this.context) {
-      await this.context.dispose();
+      this.context.dispose();
+      this.context = null;
     }
     if (this.model) {
-      await this.model.dispose();
+      this.model.dispose();
+      this.model = null;
     }
-    this.ready = false;
+    this.llama = null;
+    this.initialized = false;
+  }
+
+  /**
+   * 是否可用
+   */
+  isAvailable(): boolean {
+    return !!getLlama && this.initialized;
   }
 }
 
-export default LocalAIEngine;
+/**
+ * 检查本地引擎是否可用（node-llama-cpp 已安装）
+ * 注意：首次调用会触发异步导入，建议在初始化流程中使用
+ */
+export async function isLocalEngineAvailableAsync(): Promise<boolean> {
+  return ensureNodeLlamaCpp();
+}
+
+/**
+ * 同步检查（可能返回 false，即使模块可用但尚未导入）
+ */
+export function isLocalEngineAvailable(): boolean {
+  return _importAttempted && !!getLlama;
+}
+
+/**
+ * 快速创建本地引擎实例
+ */
+export function createLocalEngine(modelPath: string, options?: Partial<LocalModelConfig>): LocalInferenceEngine {
+  return new LocalInferenceEngine({
+    modelPath,
+    ...options,
+  });
+}

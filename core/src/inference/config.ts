@@ -6,11 +6,12 @@
 import { AIConfig, AIMode, APIProvider } from './ai-engine';
 
 export const DEFAULT_CONFIG: AIConfig = {
-  mode: 'api',
+  mode: 'local',
   apiProvider: 'nvidia',
   apiKey: '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',
   apiBaseUrl: '/api/nvidia/v1/chat/completions',
   modelName: 'stepfun-ai/step-3.5-flash',
+  localModelPath: './models/xuanji-interpreter.gguf',
   timeout: 180000,
   retryCount: 2,
 };
@@ -80,6 +81,16 @@ export const MODE_OPTIONS: { value: AIMode; label: string; description: string }
     value: 'api',
     label: 'API模式',
     description: '通过API远程推理，支持多种AI提供商',
+  },
+  {
+    value: 'local',
+    label: '本地模式',
+    description: '使用本地GGUF模型推理，无需联网，适合离线环境',
+  },
+  {
+    value: 'hybrid',
+    label: '混合模式',
+    description: '本地模型优先，失败时回退到API',
   },
 ];
 

@@ -41,11 +41,15 @@ export default defineConfig({
   },
   envPrefix: ['VITE_', 'TAURI_'],
   build: {
-    target: 'es2020',
+    target: 'es2022',  // 支持 top-level await
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     sourcemap: !!process.env.TAURI_ENV_DEBUG,
     rollupOptions: {
-      external: ['@tauri-apps/api', '@tauri-apps/plugin-store'],
+      external: [
+        '@tauri-apps/api',
+        '@tauri-apps/plugin-store',
+        'node-llama-cpp',  // Node.js原生模块，浏览器环境不可用
+      ],
     },
   },
 })

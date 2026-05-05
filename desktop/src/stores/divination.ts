@@ -125,7 +125,7 @@ export const useDivinationStore = defineStore('divination', {
           // 如果 localStorage 为空或没有 apiKey，使用默认配置
           if (!config || !config.apiKey || config.apiKey.length < 10) {
             config = {
-              mode: 'api',
+              mode: 'hybrid',  // 混合模式：优先本地GGUF模型，失败回退API
               apiProvider: 'nvidia',
               apiKey: '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',
               apiBaseUrl: '/api/nvidia/v1/chat/completions',

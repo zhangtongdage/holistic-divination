@@ -1,6 +1,6 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "productName": "全息人本卜算",
+  "productName": "??????",
   "version": "1.0.0",
   "identifier": "com.holistic.divination",
   "build": {
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "全息人本古法卜算",
+        "title": "????????",
         "label": "main",
         "width": 1280,
         "height": 800,
@@ -43,7 +43,7 @@
     "externalBin": [],
     "copyright": "",
     "category": "Lifestyle",
-    "shortDescription": "全息人本古法卜算系统",
-    "longDescription": "中华古法卜算全融合系统，打破术数体系壁垒，千人千面，纯本地运行"
+    "shortDescription": "??????????",
+    "longDescription": "???????????,????????,????,?????"
   }
 }

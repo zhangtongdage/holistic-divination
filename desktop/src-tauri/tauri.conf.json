@@ -1,7 +1,7 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/schema.json",
-  "productName": "??????",
-  "version": "1.0.0",
+  "productName": "XuanJi",
+  "version": "2.1.0",
   "identifier": "com.holistic.divination",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -12,7 +12,7 @@
   "app": {
     "windows": [
       {
-        "title": "????????",
+        "title": "全息人本古法卜算",
         "label": "main",
         "width": 1280,
         "height": 800,
@@ -31,7 +31,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["appimage", "deb", "msi", "dmg"],
+    "targets": ["appimage", "deb", "nsis", "dmg"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -43,7 +43,7 @@
     "externalBin": [],
     "copyright": "",
     "category": "Lifestyle",
-    "shortDescription": "??????????",
-    "longDescription": "???????????,????????,????,?????"
+    "shortDescription": "全息人本古法卜算系统",
+    "longDescription": "中华古法卜算全融合系统，打破术数体系壁垒，千人千面，纯本地运行"
   }
 }

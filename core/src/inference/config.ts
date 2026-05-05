@@ -11,7 +11,7 @@ export const DEFAULT_CONFIG: AIConfig = {
   apiKey: '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',
   apiBaseUrl: '/api/nvidia/v1/chat/completions',
   modelName: 'stepfun-ai/step-3.5-flash',
-  localModelPath: './models/xuanji-interpreter.gguf',
+  localModelPath: './models/xuanji-1.5b.gguf',
   timeout: 180000,
   retryCount: 2,
 };

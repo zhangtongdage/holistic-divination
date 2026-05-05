@@ -108,7 +108,7 @@ mkdir -p core/models
 
 # 从 GitHub Release 下载
 # https://github.com/zhangtongdage/holistic-divination/releases
-# 将 xuanji-interpreter.gguf 放入 core/models/
+# 将 xuanji-1.5b.gguf 放入 core/models/
 ```
 
 ### 4. 构建运行

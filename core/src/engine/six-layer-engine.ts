@@ -239,9 +239,9 @@ export class SixLayerFusionEngine {
       return;
     }
     const possiblePaths = [
-      './models/xuanji-interpreter.gguf',
-      '../models/xuanji-interpreter.gguf',
-      '../../models/xuanji-interpreter.gguf',
+      './models/xuanji-1.5b.gguf',
+      '../models/xuanji-1.5b.gguf',
+      '../../models/xuanji-1.5b.gguf',
     ];
     try {
       const fs = require('fs');

@@ -7,6 +7,7 @@ import type { AIConfig } from '@core/inference/ai-engine'
 const store = useDivinationStore()
 
 const aiMode = ref(DEFAULT_CONFIG.mode)
+const localModelPath = ref(DEFAULT_CONFIG.localModelPath)
 const apiProvider = ref(DEFAULT_CONFIG.apiProvider)
 const apiKey = ref(DEFAULT_CONFIG.apiKey)
 const apiBaseUrl = ref(DEFAULT_CONFIG.apiBaseUrl)
@@ -28,6 +29,8 @@ function loadSettings() {
     const saved = localStorage.getItem('hd_ai_config')
     if (saved) {
       const config = JSON.parse(saved)
+      if (config.mode) aiMode.value = config.mode
+      if (config.localModelPath) localModelPath.value = config.localModelPath
       if (config.apiProvider) apiProvider.value = config.apiProvider
       if (config.apiKey) apiKey.value = config.apiKey
       if (config.apiBaseUrl) apiBaseUrl.value = config.apiBaseUrl
@@ -43,6 +46,7 @@ function loadSettings() {
 function saveSettings() {
   const config: Partial<AIConfig> = {
     mode: aiMode.value as AIConfig['mode'],
+    localModelPath: localModelPath.value,
     apiProvider: apiProvider.value as any,
     apiKey: apiKey.value,
     apiBaseUrl: apiBaseUrl.value,
@@ -134,6 +138,35 @@ function onProviderChange() {
     <div class="settings-section">
       <h3>🤖 AI推理配置</h3>
 
+      <!-- 模式选择器 -->
+      <div class="form-group">
+        <label>推理模式</label>
+        <div class="mode-selector">
+          <div
+            v-for="opt in MODE_OPTIONS"
+            :key="opt.value"
+            class="mode-card"
+            :class="{ active: aiMode === opt.value }"
+            @click="aiMode = opt.value"
+          >
+            <div class="mode-icon">
+              {{ opt.value === 'api' ? '☁️' : opt.value === 'local' ? '💻' : '🔄' }}
+            </div>
+            <div class="mode-label">{{ opt.label }}</div>
+            <div class="mode-desc">{{ opt.description }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 本地模型设置 (local / hybrid) -->
+      <div v-if="aiMode === 'local' || aiMode === 'hybrid'" class="form-group">
+        <label>本地GGUF模型路径</label>
+        <input v-model="localModelPath" type="text" class="form-control" placeholder="例如：./models/xuanji-interpreter.gguf" />
+        <p class="form-help">支持 node-llama-cpp 兼容的 GGUF 格式模型文件</p>
+      </div>
+
+      <!-- API设置 (api / hybrid) -->
+      <template v-if="aiMode === 'api' || aiMode === 'hybrid'">
       <div class="form-group">
         <label>API提供商</label>
         <select v-model="apiProvider" class="form-control" @change="onProviderChange">
@@ -179,13 +212,14 @@ function onProviderChange() {
       </div>
 
       <div class="form-actions">
-        <button class="btn btn-secondary" @click="testConnection" :disabled="testStatus === 'testing'">
+        <button class="btn btn-secondary" @click="testConnection" :disabled="testStatus === 'testing' || aiMode === 'local'">
           {{ testStatus === 'testing' ? '测试中...' : '🔗 测试连接' }}
         </button>
         <button class="btn btn-primary" @click="saveSettings">
           💾 保存设置
         </button>
       </div>
+      </template><!-- /api or hybrid -->
     </div>
 
     <div class="settings-section">
@@ -200,9 +234,11 @@ function onProviderChange() {
       <h3>ℹ️ 关于</h3>
       <div class="about-info">
         <p><strong>全息人本古法卜算</strong></p>
-        <p>版本：1.0.0</p>
+        <p>版本：v2.0.0</p>
         <p>核心特点：六层融合、千人千面、典籍溯源</p>
-        <p>AI引擎：{{ apiProvider }} · {{ modelName || '默认模型' }}</p>
+        <p>推理模式：{{ MODE_OPTIONS.find(m => m.value === aiMode)?.label || aiMode }}</p>
+        <p v-if="aiMode !== 'local'">AI引擎：{{ apiProvider }} · {{ modelName || '默认模型' }}</p>
+        <p v-if="aiMode !== 'api'">本地模型：{{ localModelPath || '未设置' }}</p>
       </div>
     </div>
   </div>
@@ -234,6 +270,51 @@ function onProviderChange() {
   color: #d4af37;
   margin-bottom: 1.5rem;
   font-size: 1.1rem;
+}
+
+/* 模式选择器 */
+.mode-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.mode-card {
+  background: rgba(255, 255, 255, 0.03);
+  border: 2px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 1.25rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-align: center;
+}
+
+.mode-card:hover {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(212, 175, 55, 0.3);
+}
+
+.mode-card.active {
+  background: rgba(212, 175, 55, 0.08);
+  border-color: #d4af37;
+  box-shadow: 0 0 20px rgba(212, 175, 55, 0.15);
+}
+
+.mode-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.mode-label {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.35rem;
+}
+
+.mode-desc {
+  font-size: 0.75rem;
+  color: #888;
+  line-height: 1.4;
 }
 
 .form-group {

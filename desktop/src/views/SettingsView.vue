@@ -161,7 +161,7 @@ function onProviderChange() {
       <!-- 本地模型设置 (local / hybrid) -->
       <div v-if="aiMode === 'local' || aiMode === 'hybrid'" class="form-group">
         <label>本地GGUF模型路径</label>
-        <input v-model="localModelPath" type="text" class="form-control" placeholder="例如：./models/xuanji-interpreter.gguf" />
+        <input v-model="localModelPath" type="text" class="form-control" placeholder="例如：./models/xuanji-1.5b.gguf" />
         <p class="form-help">支持 node-llama-cpp 兼容的 GGUF 格式模型文件</p>
       </div>
 

@@ -384,12 +384,22 @@ export class SixLayerFusionEngine {
     }
     const location = locationParts.length > 0 ? locationParts.join('；') : '未知';
     
-    // 人和：八字与人事的对应 + 居住时长影响
+    // 人和：八字与人事的对应 + 居住时长 + 紧急程度
     const resonance = this.calculateResonance(dayMaster, question?.domain);
     const residenceDuration = (core as any)?.residenceDuration || 0;
+    // 居住时长影响地气深浅：<3年地气浅，3-10年地气稳，>10年地气深
+    const locationEnergy = residenceDuration >= 10 ? '地气深厚' 
+      : residenceDuration >= 3 ? '地气渐稳' 
+      : residenceDuration > 0 ? '地气尚浅' : '未知';
     const enrichedResonance = residenceDuration > 0 
-      ? `${resonance}（在常住地居住${residenceDuration}年，地气已深）`
+      ? `${resonance}（${locationEnergy}，居住${residenceDuration}年）`
       : resonance;
+    
+    // 紧急程度影响天时权重
+    const urgency = question?.urgency || 'normal';
+    const urgencyFactor = urgency === 'urgent' ? '天时紧迫，宜速不宜缓' 
+      : urgency === 'planning' ? '天时从容，可徐徐图之' 
+      : '天时适中，宜把握节奏';
 
     return {
       body: {
@@ -403,7 +413,7 @@ export class SixLayerFusionEngine {
         competition: hasCompetition ? '有竞争' : '无竞争',
       },
       opportunity: {
-        timing,
+        timing: `${timing}（${urgencyFactor}）`,
         location,
         resonance: enrichedResonance,
       },
@@ -475,20 +485,40 @@ export class SixLayerFusionEngine {
       primarySymbol
     );
     
-    // 外应（来自用户输入）
-    const externalSigns = context.mental?.premonitions || [];
+    // 外应：心绪预兆 + 关键生活事件
+    const externalSigns: string[] = [...(context.mental?.premonitions || [])];
+    // 关键事件也作为外应纳入取象
+    if (context.supplementary?.keyLifeEvents?.length) {
+      for (const evt of context.supplementary.keyLifeEvents) {
+        externalSigns.push(`近期事件：${evt.event}`);
+      }
+    }
     
-    // 类象
+    // 类象：基础类象 + 职业类象修正
+    const baseHumanImage = this.getHumanImage(tiYong.application.questionCategory);
+    const occupation = context.supplementary?.occupation;
+    const humanImage = occupation 
+      ? `${baseHumanImage}（问者职业：${occupation}，人事类象已修正）`
+      : baseHumanImage;
+    
+    // 相关人物作为辅象补充
+    const enrichedSecondarySymbols = [...secondarySymbols];
+    if (context.supplementary?.relatedPersons?.length) {
+      for (const person of context.supplementary.relatedPersons) {
+        enrichedSecondarySymbols.push(`关系人：${person.relation}-${person.name}`);
+      }
+    }
+
     const images = {
       nature: this.getNatureImage(key.hexagramName),
-      human: this.getHumanImage(tiYong.application.questionCategory),
+      human: humanImage,
       object: this.getObjectImage(key.hexagramName),
       place: this.getPlaceImage(key.hexagramName),
     };
 
     return {
       primarySymbol,
-      secondarySymbols,
+      secondarySymbols: enrichedSecondarySymbols,
       externalSigns,
       images,
     };
@@ -528,12 +558,60 @@ export class SixLayerFusionEngine {
       jiBian.changingLines
     );
     
-    // 建议
-    const advice = this.generateAdvice(
+    // 基础建议
+    const baseAdvice = this.generateAdvice(
       auspiciousness,
       tiYong.opportunity,
       quXiang
     );
+    
+    // 根据用户期望/底线/风险偏好/时间预期修正建议
+    const exp = context.expectation;
+    const advice = { ...baseAdvice };
+    
+    if (exp) {
+      // 风险偏好修正：保守→偏谨慎用语，激进→偏进取用语
+      const riskMap: Record<string, string> = {
+        low: '当前宜守不宜攻，务必稳妥行事',
+        medium: '可攻可守，把握分寸',
+        high: '形势允许大胆进取，但需留有余地',
+      };
+      if (exp.riskTolerance) {
+        const riskAdvice = riskMap[exp.riskTolerance] || riskMap.medium;
+        advice.caution = `${advice.caution}；${riskAdvice}`;
+      }
+      
+      // 期望结果修正：如果期望明确，建议指向期望方向
+      if (exp.desiredOutcome) {
+        advice.action = `${advice.action}；问者期望"${exp.desiredOutcome}"，卦象是否支持需结合应期判断`;
+      }
+      
+      // 最低接受修正：设定底线
+      if (exp.minimalAcceptable) {
+        advice.caution = `${advice.caution}；问者底线"${exp.minimalAcceptable}"，若低于此标准宜另谋他途`;
+      }
+      
+      // 时间预期修正：影响应期判断
+      if (exp.timeHorizon) {
+        const timeMap: Record<string, string> = {
+          short: '问者期望短期见效，需关注近期应期窗口',
+          medium: '问者接受中期时间线，可关注季度级变化',
+          long: '问者着眼长期，可关注年度级大势走向',
+        };
+        const timeAdvice = timeMap[exp.timeHorizon] || '';
+        if (timeAdvice) {
+          advice.timing = `${advice.timing}；${timeAdvice}`;
+        }
+      }
+    }
+    
+    // 紧急程度修正
+    const urgencyLevel = context.question?.urgency || 'normal';
+    if (urgencyLevel === 'urgent') {
+      advice.timing = `${advice.timing}；事态紧急，宜在最近一个应期窗口行动`;
+    } else if (urgencyLevel === 'planning') {
+      advice.timing = `${advice.timing}；尚在规划期，可从容布局等待最佳时机`;
+    }
 
     return {
       auspiciousness,
@@ -881,6 +959,26 @@ export class SixLayerFusionEngine {
     stable.push('本命');
     stable.push('问事');
     
+    // 用户已有打算 → 作为稳定因素（有计划则事有可为）
+    const actionPlan = context.expectation?.actionPlan;
+    if (actionPlan) {
+      stable.push(`已有打算：${actionPlan}`);
+    }
+    
+    // 职业稳定性 → 影响稳定因素
+    const occupation = context.supplementary?.occupation;
+    if (occupation) {
+      stable.push(`职业根基：${occupation}`);
+    }
+    
+    // 财务状况 → 影响变数幅度
+    const finStatus = context.supplementary?.financialStatus;
+    if (finStatus === 'poor') {
+      changing.push('财务紧张，变数增大');
+    } else if (finStatus === 'wealthy') {
+      stable.push('财务充裕，根基稳固');
+    }
+    
     // 变化因素
     if (changingLines.length > 0) {
       changing.push('变爻预示转机');
@@ -890,6 +988,11 @@ export class SixLayerFusionEngine {
     if (context.situation?.majorChanges) {
       changing.push('近期有变');
       critical = '变动之中';
+    }
+    
+    // 相关人物 → 可能引入变数
+    if (context.supplementary?.relatedPersons?.length) {
+      changing.push(`${context.supplementary.relatedPersons.length}位关系人牵涉其中`);
     }
 
     return { stable, changing, critical };

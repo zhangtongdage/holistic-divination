@@ -71,6 +71,26 @@ const EMOTION_WEIGHT: Record<string, number> = {
   'urgent': 1.2, // 急迫 → 较高权重
 };
 
+// 职业五行编码（影响人事类象）
+const OCCUPATION_WUXING: Record<string, number> = {
+  '仕': 4, '官': 4, '公': 4, '政': 4,  // 金 = 肃杀、规矩
+  '商': 3, '贾': 3, '贸': 3, '投': 3,  // 土 = 承载、积累
+  '农': 1, '林': 1, '牧': 1, '渔': 1,  // 木 = 生长
+  '工': 2, '技': 2, '匠': 2, '程': 2,  // 火 = 锻造
+  '学': 5, '教': 5, '研': 5, '文': 5,  // 水 = 智慧
+  '医': 2, '护': 2, '药': 2,            // 火 = 救治
+  '军': 4, '警': 4, '法': 4,            // 金 = 刚毅
+  '艺': 1, '设': 1, '创': 1,            // 木 = 创造
+};
+
+// 财务状况权重
+const FINANCIAL_WEIGHT: Record<string, number> = {
+  'poor': 1.5,      // 紧张 → 变动大
+  'average': 1.0,   // 一般 → 标准
+  'comfortable': 0.8, // 宽裕 → 稳定
+  'wealthy': 0.6,   // 富足 → 最稳
+};
+
 // 质数池（用于七维混合时的模运算）
 const PRIME_POOL = [
   257, 263, 269, 271, 277, 281, 283, 293, 307, 311,
@@ -511,6 +531,29 @@ export class UniqueDivinationKeyGenerator {
     // 问题描述长度
     if (question?.description) {
       behaviorScore += Math.min(question.description.length / 10, 20);
+    }
+
+    // 职业五行编码（不同职业影响人事取象）
+    const supp = context.supplementary;
+    if (supp?.occupation) {
+      const occ = supp.occupation;
+      // 匹配职业关键词
+      let occCode = 3; // 默认土
+      for (const [key, val] of Object.entries(OCCUPATION_WUXING)) {
+        if (occ.includes(key)) { occCode = val; break; }
+      }
+      behaviorScore += occCode * 5;
+    }
+
+    // 财务状况权重（影响变动幅度）
+    if (supp?.financialStatus) {
+      const finWeight = FINANCIAL_WEIGHT[supp.financialStatus] || 1.0;
+      behaviorScore *= finWeight;
+    }
+
+    // 相关人物数量（人际关系影响卦局复杂度）
+    if (supp?.relatedPersons?.length) {
+      behaviorScore += supp.relatedPersons.length * 8;
     }
 
     return Math.round(behaviorScore);

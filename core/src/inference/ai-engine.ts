@@ -1,14 +1,14 @@
 /**
- * 混合AI推理引擎（API + 本地模型双模式）
+ * AI推理引擎（API模式 + 混合模式）
  * 
- * 支持：
- * 1. API模式：OpenAI/Claude/智谱/DeepSeek等
- * 2. 本地模式：GGUF模型离线推理
+ * 两种模式：
+ * 1. API模式（默认）：通过API远程推理，支持多种AI提供商
+ * 2. 混合模式：Tauri桌面端可用本地模型，浏览器自动回退API
  * 
  * 设计原则：
- * 1. 优先使用本地模型（零网络依赖）
- * 2. API模式作为备选和高质量补充
- * 3. 所有密钥本地AES-256加密
+ * 1. 开箱即用，无需手动配置
+ * 2. 所有密钥本地加密存储
+ * 3. AI失败不阻断卜算主流程
  */
 
 // 浏览器兼容的 EventEmitter
@@ -42,7 +42,7 @@ class EventEmitter {
 
 // ==================== 类型定义 ====================
 
-export type AIMode = 'api' | 'local' | 'hybrid';
+export type AIMode = 'api' | 'hybrid';
 export type APIProvider = 'openai' | 'claude' | 'zhipu' | 'baidu' | 'deepseek' | 'nvidia' | 'custom';
 
 export interface AIConfig {
@@ -53,10 +53,6 @@ export interface AIConfig {
   modelName?: string;
   timeout: number;
   retryCount: number;
-  // 本地模型配置
-  localModelPath?: string;
-  gpuLayers?: number;
-  contextSize?: number;
 }
 
 export interface InferenceRequest {
@@ -65,10 +61,28 @@ export interface InferenceRequest {
     question: QuestionInfo;
     hexagram: HexagramResult;
     classics: ClassicReference[];
+    // 用户补充信息（全部参与AI解读）
+    supplementary?: SupplementaryInfo;
+    expectation?: ExpectationInfo;
   };
   task: 'interpret' | 'classics_match' | 'trend_analysis' | 'suggestion';
   complexity: 'simple' | 'standard' | 'deep';
   systemPrompt?: string;
+}
+
+export interface SupplementaryInfo {
+  occupation?: string;
+  financialStatus?: string;
+  keyLifeEvents?: string;
+  relatedPersons?: string;
+}
+
+export interface ExpectationInfo {
+  desiredOutcome?: string;
+  minimalAcceptable?: string;
+  actionPlan?: string;
+  riskTolerance?: string;
+  timeHorizon?: string;
 }
 
 export interface InferenceResult {
@@ -125,23 +139,17 @@ export interface ClassicReference {
 // ==================== 配置常量 ====================
 
 export const DEFAULT_CONFIG: AIConfig = {
-  mode: 'hybrid',  // 默认混合模式：优先本地，失败回退API
-  apiProvider: 'openai',
-  apiKey: '',
-  timeout: 30000,
-  retryCount: 3,
-  gpuLayers: 35,
-  contextSize: 4096,
+  mode: 'api',
+  apiProvider: 'nvidia',
+  apiKey: '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',
+  apiBaseUrl: '/api/nvidia/v1/chat/completions',
+  modelName: 'stepfun-ai/step-3.5-flash',
+  timeout: 300000,
+  retryCount: 2,
 };
 
 export const SUPPORTED_PROVIDERS: APIProvider[] = [
-  'openai', 'claude', 'zhipu', 'baidu', 'deepseek', 'custom'
-];
-
-export const MODE_OPTIONS = [
-  { value: 'local', label: '本地模式（离线可用）' },
-  { value: 'api', label: 'API模式（需联网）' },
-  { value: 'hybrid', label: '混合模式（推荐）' },
+  'openai', 'claude', 'zhipu', 'baidu', 'deepseek', 'nvidia', 'custom'
 ];
 
 export const COMPLEXITY_SETTINGS = {
@@ -161,21 +169,20 @@ const API_ENDPOINTS: Record<APIProvider, string | null> = {
 };
 
 const DEFAULT_MODELS: Record<APIProvider, string> = {
-  openai: 'gpt-4-turbo-preview',
-  claude: 'claude-3-sonnet-20240229',
-  zhipu: 'glm-4',
+  openai: 'gpt-4o-mini',
+  claude: 'claude-3-haiku-20240307',
+  zhipu: 'glm-4-flash',
   baidu: 'ernie-bot-4',
   deepseek: 'deepseek-chat',
   nvidia: 'stepfun-ai/step-3.5-flash',
   custom: 'custom-model',
 };
 
-// ==================== 混合AI引擎主类 ====================
+// ==================== AI引擎主类 ====================
 
 export class HybridAIEngine extends EventEmitter {
   private config: AIConfig;
   private ready: boolean = false;
-  private localEngine: any = null;  // LocalAIEngine (动态导入)
   private apiAvailable: boolean = false;
 
   constructor(config: Partial<AIConfig> = {}) {
@@ -184,35 +191,18 @@ export class HybridAIEngine extends EventEmitter {
   }
 
   /**
-   * 初始化引擎
+   * 初始化引擎 — 检查API可用性
    */
   public async initialize(): Promise<void> {
     this.emit('init:start');
 
     try {
-      // 1. 尝试初始化本地模型
-      if (this.config.mode === 'local' || this.config.mode === 'hybrid') {
-        try {
-          await this.initLocalEngine();
-          console.log('[HybridAI] 本地模型初始化成功 ✅');
-        } catch (error) {
-          console.warn('[HybridAI] 本地模型初始化失败:', (error as Error).message);
-          if (this.config.mode === 'local') {
-            throw error;  // 纯本地模式下失败则报错
-          }
-          // 混合模式下继续尝试API
-        }
-      }
-
-      // 2. 检查API可用性
-      if (this.config.mode === 'api' || this.config.mode === 'hybrid') {
-        if (this.config.apiKey && this.config.apiKey.length >= 10) {
-          this.apiAvailable = true;
-        }
-      }
-
-      if (!this.localEngine && !this.apiAvailable) {
-        throw new Error('无可用推理后端：本地模型未找到，API密钥未配置');
+      // 检查API密钥是否有效
+      if (this.config.apiKey && this.config.apiKey.length >= 10) {
+        this.apiAvailable = true;
+        console.log(`[AI引擎] API模式就绪 — ${this.config.apiProvider}/${this.config.modelName || '默认'}`);
+      } else {
+        throw new Error('API密钥未配置或无效');
       }
 
       this.ready = true;
@@ -224,23 +214,7 @@ export class HybridAIEngine extends EventEmitter {
   }
 
   /**
-   * 初始化本地引擎 (动态导入，避免浏览器环境报错)
-   */
-  private async initLocalEngine(): Promise<void> {
-    // 在Node.js/Tauri环境中动态导入
-    if (typeof window === 'undefined') {
-      const { LocalInferenceEngine } = await import('./local-engine');
-      this.localEngine = new LocalInferenceEngine({
-        modelPath: this.config.localModelPath || '',
-        gpuLayers: this.config.gpuLayers || 35,
-        contextSize: this.config.contextSize || 4096,
-      });
-      await this.localEngine.initialize();
-    }
-  }
-
-  /**
-   * 执行推理 — 智能路由
+   * 执行推理
    */
   public async infer(request: InferenceRequest): Promise<InferenceResult> {
     if (!this.ready) {
@@ -249,25 +223,11 @@ export class HybridAIEngine extends EventEmitter {
 
     const startTime = Date.now();
 
-    // 混合模式：优先本地，失败回退API
-    if (this.localEngine) {
-      try {
-        const result = await this.localEngine.infer(request);
-        return result;
-      } catch (error) {
-        console.warn('[HybridAI] 本地推理失败，回退API:', (error as Error).message);
-        if (!this.apiAvailable) {
-          throw error;
-        }
-      }
-    }
-
-    // API模式或本地失败回退
     if (this.apiAvailable) {
       return await this.inferViaAPI(request, startTime);
     }
 
-    throw new Error('无可用推理后端');
+    throw new Error('无可用推理后端：API密钥未配置');
   }
 
   /**
@@ -278,17 +238,6 @@ export class HybridAIEngine extends EventEmitter {
       throw new Error('引擎未初始化');
     }
 
-    // 本地模型流式
-    if (this.localEngine) {
-      try {
-        yield* this.localEngine.inferStream(request);
-        return;
-      } catch (error) {
-        console.warn('[HybridAI] 本地流式推理失败，回退API');
-      }
-    }
-
-    // API流式
     if (this.apiAvailable) {
       yield* this.inferStreamViaAPI(request);
       return;
@@ -304,21 +253,11 @@ export class HybridAIEngine extends EventEmitter {
     return {
       ready: this.ready,
       mode: this.config.mode,
-      localAvailable: !!this.localEngine,
       apiAvailable: this.apiAvailable,
       provider: this.config.apiProvider,
       model: this.config.modelName || DEFAULT_MODELS[this.config.apiProvider],
       hasKey: !!this.config.apiKey && this.config.apiKey.length > 0,
     };
-  }
-
-  /**
-   * 切换模式
-   */
-  public async switchMode(mode: AIMode): Promise<void> {
-    this.ready = false;
-    this.config.mode = mode;
-    await this.initialize();
   }
 
   /**
@@ -330,7 +269,7 @@ export class HybridAIEngine extends EventEmitter {
     await this.initialize();
   }
 
-  // ==================== API推理（保留原有逻辑） ====================
+  // ==================== API推理 ====================
 
   private async inferViaAPI(request: InferenceRequest, startTime: number): Promise<InferenceResult> {
     let lastError: Error | null = null;
@@ -430,14 +369,15 @@ export class HybridAIEngine extends EventEmitter {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
-        throw new Error(`API请求失败(${response.status})`);
+        const errText = await response.text().catch(() => '');
+        throw new Error(`API请求失败(${response.status}): ${errText.slice(0, 200)}`);
       }
 
       const data = await response.json();
       return this.parseResponse(data);
     } catch (error) {
       clearTimeout(timeoutId);
-      if ((error as Error).name === 'AbortError') throw new Error('API请求超时');
+      if ((error as Error).name === 'AbortError') throw new Error('API请求超时（5分钟）');
       throw error;
     }
   }
@@ -485,8 +425,11 @@ export class HybridAIEngine extends EventEmitter {
     };
   }
 
+  /**
+   * 构建完整prompt — 包含全部用户信息
+   */
   private buildPrompt(request: InferenceRequest): string {
-    const { personInfo, question, hexagram, classics } = request.divinationContext;
+    const { personInfo, question, hexagram, classics, supplementary, expectation } = request.divinationContext;
     const complexityDesc: Record<string, string> = {
       simple: '请给出简明扼要的解读，150字以内。',
       standard: '请给出标准深度的解读，结合卦象和典籍。',
@@ -497,6 +440,29 @@ export class HybridAIEngine extends EventEmitter {
       ? `\n\n【典籍引用】：\n${classics.map(c => `《${c.title}》·${c.chapter}：${c.quote}`).join('\n')}`
       : '';
 
+    // 用户补充信息（全部融入prompt）
+    let supplementaryText = '';
+    if (supplementary) {
+      const parts: string[] = [];
+      if (supplementary.occupation) parts.push(`职业：${supplementary.occupation}`);
+      if (supplementary.financialStatus) parts.push(`财务状况：${supplementary.financialStatus}`);
+      if (supplementary.keyLifeEvents) parts.push(`近期重要事件：${supplementary.keyLifeEvents}`);
+      if (supplementary.relatedPersons) parts.push(`相关人物：${supplementary.relatedPersons}`);
+      if (parts.length > 0) supplementaryText = `\n\n【用户补充】\n${parts.join('\n')}`;
+    }
+
+    // 用户期望信息（全部融入prompt）
+    let expectationText = '';
+    if (expectation) {
+      const parts: string[] = [];
+      if (expectation.desiredOutcome) parts.push(`期望结果：${expectation.desiredOutcome}`);
+      if (expectation.minimalAcceptable) parts.push(`最低接受：${expectation.minimalAcceptable}`);
+      if (expectation.actionPlan) parts.push(`已有打算：${expectation.actionPlan}`);
+      if (expectation.riskTolerance) parts.push(`风险偏好：${expectation.riskTolerance}`);
+      if (expectation.timeHorizon) parts.push(`时间预期：${expectation.timeHorizon}`);
+      if (parts.length > 0) expectationText = `\n\n【用户预期】\n${parts.join('\n')}`;
+    }
+
     return `【卜筮】${personInfo.name} 问：${question.description}
 
 【生辰】${personInfo.birthDate.yearGanZhi}年 ${personInfo.birthDate.isLeap ? '闰' : ''}${personInfo.birthDate.lunarMonth}月${personInfo.birthDate.lunarDay}日
@@ -504,7 +470,7 @@ export class HybridAIEngine extends EventEmitter {
 【出生地】${personInfo.birthplace}
 
 【本卦】${hexagram.primary}${hexagram.changing ? ` → ${hexagram.changing}` : ''}
-【爻象】${hexagram.lines.map(l => l ? '━━━━━' : '━ ━━').join(' ')}${classicsText}
+【爻象】${hexagram.lines.map(l => l ? '━━━━━' : '━ ━━').join(' ')}${classicsText}${supplementaryText}${expectationText}
 
 ${complexityDesc[request.complexity] || complexityDesc.standard}`;
   }
@@ -514,9 +480,6 @@ ${complexityDesc[request.complexity] || complexityDesc.standard}`;
   }
 
   public async dispose(): Promise<void> {
-    if (this.localEngine) {
-      await this.localEngine.dispose();
-    }
     this.ready = false;
     this.removeAllListeners();
   }

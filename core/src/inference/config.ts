@@ -6,13 +6,12 @@
 import { AIConfig, AIMode, APIProvider } from './ai-engine';
 
 export const DEFAULT_CONFIG: AIConfig = {
-  mode: 'local',
+  mode: 'api',
   apiProvider: 'nvidia',
   apiKey: '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',
   apiBaseUrl: '/api/nvidia/v1/chat/completions',
   modelName: 'stepfun-ai/step-3.5-flash',
-  localModelPath: './models/xuanji-1.5b.gguf',
-  timeout: 180000,
+  timeout: 300000,
   retryCount: 2,
 };
 
@@ -75,22 +74,17 @@ export const SUPPORTED_PROVIDERS: {
   },
 ];
 
-// 模式说明
+// 模式说明（仅API和混合两种模式）
 export const MODE_OPTIONS: { value: AIMode; label: string; description: string }[] = [
   {
     value: 'api',
     label: 'API模式',
-    description: '通过API远程推理，支持多种AI提供商',
-  },
-  {
-    value: 'local',
-    label: '本地模式',
-    description: '使用本地GGUF模型推理，无需联网，适合离线环境',
+    description: '通过API远程AI推理，支持多种提供商，开箱即用',
   },
   {
     value: 'hybrid',
     label: '混合模式',
-    description: '本地模型优先，失败时回退到API',
+    description: '本地模型优先（Tauri桌面端），失败时自动回退API',
   },
 ];
 
@@ -100,18 +94,18 @@ export const COMPLEXITY_SETTINGS = {
     label: '简洁',
     description: '快速回答，适合简单问题',
     tokens: 500,
-    prefers: 'onnx' as const, // 本地计算即可
+    prefers: 'api' as const,
   },
   standard: {
     label: '标准',
     description: '完整解读，适合大多数情况',
     tokens: 1500,
-    prefers: 'hybrid' as const, // 混合模式
+    prefers: 'api' as const,
   },
   deep: {
     label: '深入',
     description: '详尽分析，结合多典籍引用',
     tokens: 4096,
-    prefers: 'api' as const, // 建议API
+    prefers: 'api' as const,
   },
 };

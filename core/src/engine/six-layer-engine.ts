@@ -29,7 +29,6 @@ import { DivinationKey, UniqueDivinationKeyGenerator } from './key-generator';
 import { LunarCalendarConverter } from '../utils/lunar-calendar';
 import { lookupLongitude, calculateTrueSolarTime, getShichenFromTime } from '../utils/true-solar-time';
 import { HybridAIEngine, InferenceRequest, InferenceResult, AIConfig } from '../inference/ai-engine';
-import { LocalInferenceEngine, isLocalEngineAvailable, isLocalEngineAvailableAsync } from '../inference/local-engine';
 import { CollectionSection } from '../collection/holistic-collector';
 import { getHexagramByName } from '../data/hexagram-classics';
 
@@ -214,56 +213,11 @@ export interface FinalDivinationResult {
 export class SixLayerFusionEngine {
   private aiEngine: HybridAIEngine | null = null;
   private aiEnabled: boolean = false;
-  private localEngine: LocalInferenceEngine | null = null;
-  private autoInitAttempted = false;
 
   constructor(aiConfig?: AIConfig) {
     if (aiConfig) {
       this.aiEngine = new HybridAIEngine(aiConfig);
       this.aiEnabled = true;
-    }
-    // 未传入配置时，尝试自动加载本地模型
-    if (!this.aiEnabled && !this.autoInitAttempted) {
-      this.autoInitLocal();
-    }
-  }
-
-  /**
-   * 自动初始化本地模型（后台静默，失败不抛错）
-   */
-  private async autoInitLocal(): Promise<void> {
-    this.autoInitAttempted = true;
-    const available = await isLocalEngineAvailableAsync();
-    if (!available) {
-      console.log('[卜算引擎] node-llama-cpp 未安装，AI解读不可用');
-      return;
-    }
-    const possiblePaths = [
-      './models/xuanji-1.5b.gguf',
-      '../models/xuanji-1.5b.gguf',
-      '../../models/xuanji-1.5b.gguf',
-    ];
-    try {
-      const fs = require('fs');
-      const pathMod = require('path');
-      for (const p of possiblePaths) {
-        const fullPath = pathMod.resolve(p);
-        if (fs.existsSync(fullPath)) {
-          console.log(`[卜算引擎] 发现本地模型: ${fullPath}`);
-          this.localEngine = new LocalInferenceEngine({ modelPath: fullPath });
-          this.localEngine.initialize()
-            .then(() => {
-              this.aiEnabled = true;
-              this.aiEngine = this.localEngine as any; // 用于统一接口
-              console.log('[卜算引擎] 本地模型加载成功，AI解读已启用');
-            })
-            .catch((err: Error) => console.log(`[卜算引擎] 本地模型加载失败: ${err.message}`));
-          return;
-        }
-      }
-      console.log('[卜算引擎] 未找到本地模型文件，AI解读不可用');
-    } catch {
-      console.log('[卜算引擎] 自动初始化异常，AI解读不可用');
     }
   }
 
@@ -1601,6 +1555,20 @@ export class SixLayerFusionEngine {
           translation: (c as any).translation || '',
           relevance: c.relevance,
         })),
+        // 传递全部用户补充信息
+        supplementary: context.supplementary ? {
+          occupation: context.supplementary.occupation,
+          financialStatus: context.supplementary.financialStatus,
+          keyLifeEvents: context.supplementary.keyLifeEvents?.map(e => e.event).join('、'),
+          relatedPersons: context.supplementary.relatedPersons?.map(r => `${r.relation}:${r.name}`).join('、'),
+        } : undefined,
+        expectation: context.expectation ? {
+          desiredOutcome: context.expectation.desiredOutcome,
+          minimalAcceptable: context.expectation.minimalAcceptable,
+          actionPlan: context.expectation.actionPlan,
+          riskTolerance: context.expectation.riskTolerance,
+          timeHorizon: context.expectation.timeHorizon,
+        } : undefined,
       },
       task: 'interpret',
       complexity: 'standard',

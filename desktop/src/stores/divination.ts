@@ -115,29 +115,29 @@ export const useDivinationStore = defineStore('divination', {
           this.engine = new SixLayerFusionEngine()
         }
         
-        // 加载 AI 配置：优先 localStorage，否则用默认配置
+        // 加载 AI 配置：优先 localStorage，否则用内置默认配置
         try {
           let config: any = null
           const savedConfig = localStorage.getItem('hd_ai_config')
           if (savedConfig) {
             config = JSON.parse(savedConfig)
           }
-          // 如果 localStorage 为空或没有 apiKey，使用默认配置
+          // 如果 localStorage 为空或没有 apiKey，使用内置默认配置
           if (!config || !config.apiKey || config.apiKey.length < 10) {
             config = {
-              mode: 'hybrid',  // 混合模式：优先本地GGUF模型，失败回退API
+              mode: 'api',
               apiProvider: 'nvidia',
               apiKey: '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',
               apiBaseUrl: '/api/nvidia/v1/chat/completions',
               modelName: 'stepfun-ai/step-3.5-flash',
-              localModelPath: './models/xuanji-1.5b.gguf',
               timeout: 300000,
-              retryCount: 1,
+              retryCount: 2,
             }
           }
           await this.engine.initializeAI(config)
+          console.log('[卜算] AI解读已就绪')
         } catch (e) {
-          console.warn('AI配置加载失败，将使用纯算法模式:', e)
+          console.warn('[卜算] AI初始化失败，将使用纯算法解读:', e)
         }
 
         // 执行卜算（含 AI 增强解读）

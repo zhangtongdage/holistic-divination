@@ -381,9 +381,9 @@ function getLineTooltipData(posIndex: number, isYang: boolean, hexagramName: str
         </div>
       </div>
       <div v-else class="ai-card ai-empty">
-        <p>💡 AI解读未启用</p>
-        <p>请先到 <router-link to="/settings">设置</router-link> 页面配置AI提供商并保存，然后重新起卦即可获得AI智能解读。</p>
-        <router-link to="/divination" class="btn btn-sm btn-gold">重新起卦</router-link>
+        <p>⏳ AI解读生成中或暂时不可用</p>
+        <p>请检查网络连接或API密钥是否有效。</p>
+        <router-link to="/settings" class="btn btn-sm btn-gold">检查设置</router-link>
       </div>
     </section>
 

@@ -7,7 +7,6 @@ import type { AIConfig } from '@core/inference/ai-engine'
 const store = useDivinationStore()
 
 const aiMode = ref(DEFAULT_CONFIG.mode)
-const localModelPath = ref(DEFAULT_CONFIG.localModelPath)
 const apiProvider = ref(DEFAULT_CONFIG.apiProvider)
 const apiKey = ref(DEFAULT_CONFIG.apiKey)
 const apiBaseUrl = ref(DEFAULT_CONFIG.apiBaseUrl)
@@ -30,7 +29,6 @@ function loadSettings() {
     if (saved) {
       const config = JSON.parse(saved)
       if (config.mode) aiMode.value = config.mode
-      if (config.localModelPath) localModelPath.value = config.localModelPath
       if (config.apiProvider) apiProvider.value = config.apiProvider
       if (config.apiKey) apiKey.value = config.apiKey
       if (config.apiBaseUrl) apiBaseUrl.value = config.apiBaseUrl
@@ -46,7 +44,6 @@ function loadSettings() {
 function saveSettings() {
   const config: Partial<AIConfig> = {
     mode: aiMode.value as AIConfig['mode'],
-    localModelPath: localModelPath.value,
     apiProvider: apiProvider.value as any,
     apiKey: apiKey.value,
     apiBaseUrl: apiBaseUrl.value,
@@ -150,7 +147,7 @@ function onProviderChange() {
             @click="aiMode = opt.value"
           >
             <div class="mode-icon">
-              {{ opt.value === 'api' ? '☁️' : opt.value === 'local' ? '💻' : '🔄' }}
+              {{ opt.value === 'api' ? '☁️' : '🔄' }}
             </div>
             <div class="mode-label">{{ opt.label }}</div>
             <div class="mode-desc">{{ opt.description }}</div>
@@ -158,14 +155,7 @@ function onProviderChange() {
         </div>
       </div>
 
-      <!-- 本地模型设置 (local / hybrid) -->
-      <div v-if="aiMode === 'local' || aiMode === 'hybrid'" class="form-group">
-        <label>本地GGUF模型路径</label>
-        <input v-model="localModelPath" type="text" class="form-control" placeholder="例如：./models/xuanji-1.5b.gguf" />
-        <p class="form-help">支持 node-llama-cpp 兼容的 GGUF 格式模型文件</p>
-      </div>
-
-      <!-- API设置 (api / hybrid) -->
+      <!-- API设置 -->
       <template v-if="aiMode === 'api' || aiMode === 'hybrid'">
       <div class="form-group">
         <label>API提供商</label>

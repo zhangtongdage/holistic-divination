@@ -613,6 +613,9 @@ export class SixLayerFusionEngine {
       advice.timing = `${advice.timing}；尚在规划期，可从容布局等待最佳时机`;
     }
 
+    // ====== SituationModifier：境况修正（让 situation 字段真正影响解读） ======
+    this.applySituationModifier(advice, auspiciousness, context);
+
     return {
       auspiciousness,
       trendDescription: trend,
@@ -1287,6 +1290,133 @@ export class SixLayerFusionEngine {
     };
   }
 
+
+  /**
+   * SituationModifier：境况修正
+   * 将用户填写的人生阶段、核心困境、困境持续时长、可用资源
+   * 转化为对义理层建议的结构性修正。
+   *
+   * 原则：不改卦象，只改"怎么解释这个卦"。
+   */
+  private applySituationModifier(
+    advice: YiLiLayer['advice'],
+    auspiciousness: YiLiLayer['auspiciousness'],
+    context: HolisticPersonContext
+  ): void {
+    const situation = context.situation;
+    if (!situation) return;
+
+    const isNegative = ['大凶', '凶', '小凶'].includes(auspiciousness);
+    const isPositive = ['大吉', '吉', '小吉'].includes(auspiciousness);
+
+    // === 1. lifeStage → 基调修正 ===
+    const stageModifiers: Record<string, { action: string; caution: string }> = {
+      crisis: {
+        action: '身处危局，每一步都需深思熟虑，切忌孤注一掷',
+        caution: '危局之中"凶"义加倍警惕，"吉"义也需审视是否为假象',
+      },
+      bottleneck: {
+        action: '瓶颈期需要的是变通而非蛮力，尝试未曾想过的路径',
+        caution: '瓶颈期最忌原地踏步，但突破方向比速度更重要',
+      },
+      transition: {
+        action: '转型期的不确定性是正常的，关键在于新旧交替的节奏把控',
+        caution: '转型期不宜两头兼顾，应果断取舍',
+      },
+      starting: {
+        action: '起步阶段试错成本最低，宜大胆尝试积累经验',
+        caution: '起步期忌好高骛远，先把根基扎牢',
+      },
+      accumulating: {
+        action: '积累期重在厚积薄发，不必急于看到结果',
+        caution: '积累期忌半途而废，耐心是最大的资本',
+      },
+      recovery: {
+        action: '恢复期宜稳扎稳打，逐步恢复元气',
+        caution: '恢复期忌急于求成，伤筋动骨尚需百日',
+      },
+      stable: {
+        action: '稳中求进，居安思危',
+        caution: '稳定期最易松懈，需保持警觉',
+      },
+    };
+
+    const stageMod = stageModifiers[situation.lifeStage];
+    if (stageMod) {
+      advice.action = `${advice.action}；${stageMod.action}`;
+      advice.caution = `${advice.caution}；${stageMod.caution}`;
+    }
+
+    // === 2. coreDilemma → 困境关键词匹配修正 ===
+    const dilemma = situation.coreDilemma || '';
+    const dilemmaLower = dilemma.toLowerCase();
+
+    const dilemmaKeywords: { pattern: RegExp; action: string; caution: string }[] = [
+      { pattern: /钱|财|债务|贷款|缺钱|经济/, action: '财务困局需开源节流并行，单靠节流难以破局', caution: '切忌因急于求财而铤而走险' },
+      { pattern: /感情|分手|婚姻|离婚|出轨|对象|恋爱/, action: '感情之事急不来，先厘清自身需求再做决定', caution: '感情困局中最忌意气用事，冷静比冲动更有利' },
+      { pattern: /工作|失业|辞职|升职|跳槽|面试/, action: '职业困局需评估自身筹码，有底气时果断出手', caution: '在职时找工作远比失业后从容，切忌裸辞' },
+      { pattern: /健康|生病|手术|身体|失眠|抑郁/, action: '健康问题应以调养为主，卦象不能替代医疗', caution: '务必以正规医疗为主，术数仅供参考' },
+      { pattern: /考试|考研|高考|学习|升学/, action: '学业困局重在方法和心态，努力方向比努力程度更重要', caution: '考前焦虑会干扰判断，保持平常心' },
+      { pattern: /官司|纠纷|诉讼|被骗|打官司/, action: '纠纷之事宜先礼后兵，能协商则不走诉讼', caution: '法律事务务必咨询专业律师，卦象仅供参考' },
+    ];
+
+    for (const kw of dilemmaKeywords) {
+      if (kw.pattern.test(dilemmaLower)) {
+        advice.action = `${advice.action}；针对所问困境：${kw.action}`;
+        advice.caution = `${advice.caution}；${kw.caution}`;
+        break;
+      }
+    }
+
+    // === 3. stagnationMonths → 困境持续时长修正 ===
+    const months = situation.stagnationMonths || 0;
+    if (months > 24) {
+      advice.action = `${advice.action}；困局已持续两年以上，当前策略已充分验证无效，需根本性改变思路而非微调`;
+      advice.caution = `${advice.caution}；长期困局中人容易习得性无助，需警惕"已经试过了"的心态封锁新可能`;
+    } else if (months > 12) {
+      advice.action = `${advice.action}；困局持续逾一年，是时候换一种完全不同的方式`;
+      advice.caution = `${advice.caution}；中期困局需审视是否在用同样的方法期待不同的结果`;
+    } else if (months > 6) {
+      advice.action = `${advice.action}；困局已半年有余，应在现有策略上做出明确调整`;
+    }
+
+    // === 4. currentResources → 可行动性修正 ===
+    const resources = situation.currentResources || [];
+    const hasNone = resources.includes('none');
+    const hasMoney = resources.includes('money');
+    const hasNetwork = resources.includes('network');
+    const hasSkills = resources.includes('skills');
+    const hasMentor = resources.includes('mentor');
+    const resourceCount = hasNone ? 0 : resources.length;
+
+    if (hasNone || resourceCount === 0) {
+      // 资源匮乏 → 降低"主动出击"权重
+      advice.action = advice.action.replace(/放手施为|大胆进取|放手一搏/g, '谨慎行事');
+      advice.action += '；当前资源有限，宜先积蓄力量再图发展';
+      advice.timing += '；资源不足时不宜急于行动，先夯实基础';
+    } else {
+      // 有资源 → 根据资源类型给出针对性建议
+      const resourceAdvices: string[] = [];
+      if (hasMoney) resourceAdvices.push('有财力支撑可适当加大投入');
+      if (hasNetwork) resourceAdvices.push('人脉资源是破局利器，宜主动寻求合作与支持');
+      if (hasSkills) resourceAdvices.push('技能是核心竞争力，围绕自身擅长领域发力');
+      if (hasMentor) resourceAdvices.push('有贵人指点，应多听取过来人的经验');
+      if (resourceAdvices.length > 0) {
+        advice.action += `；${resourceAdvices[0]}`;
+      }
+    }
+
+    // === 5. 危局+资源匮乏 → 特别警示 ===
+    if (isNegative && (hasNone || resourceCount === 0)) {
+      advice.caution += '；卦象凶险且资源匮乏，此时最忌病急乱投医，宁可不动也不可乱动';
+    }
+
+    // === 6. 吉象+危机阶段 → 假象警示 ===
+    if (isPositive && situation.lifeStage === 'crisis') {
+      advice.caution += '；身处危机却得吉卦，需审视是否为"回光返照"之象，不可掉以轻心';
+    }
+  }
+
   private matchClassics(
     key: DivinationKey,
     yiLi: YiLiLayer,
@@ -1366,27 +1496,37 @@ export class SixLayerFusionEngine {
     // 综合结论
     const verdict = yiLi.auspiciousness;
     
-    // 关键词
+    // 关键词（含境况关键词）
     const keywords: string[] = [
       yiLi.auspiciousness,
       quXiang.primarySymbol,
       jiBian.pattern,
     ];
+    // 将人生阶段和困境关键词纳入结论标签
+    const situation = context.situation;
+    if (situation) {
+      const stageLabels: Record<string, string> = {
+        crisis: '危机', bottleneck: '瓶颈', transition: '转型',
+        starting: '起步', accumulating: '积累', recovery: '恢复', stable: '平稳',
+      };
+      if (stageLabels[situation.lifeStage]) keywords.push(stageLabels[situation.lifeStage]);
+      if (situation.coreDilemma) keywords.push(situation.coreDilemma.slice(0, 8));
+    }
     
     // 时间线
     const timeline = yiLi.timeFrame;
     
-    // 行动建议
+    // 行动建议（融合义理层+境况修正后的建议）
     const actions = {
       favorable: [
-        yiLi.advice.action.split('，')[0],
+        yiLi.advice.action.split('；')[0],  // 取第一条建议（不含境况附加）
+        yiLi.advice.action.includes('；') ? yiLi.advice.action.split('；').slice(1)[0] : '',
         '静观',
-        '等待',
       ].filter(Boolean),
       avoid: [
-        yiLi.advice.caution,
+        yiLi.advice.caution.split('；')[0],
+        yiLi.advice.caution.includes('；') ? yiLi.advice.caution.split('；').slice(1)[0] : '',
         '妄动',
-        '贪进',
       ].filter(Boolean),
     };
 

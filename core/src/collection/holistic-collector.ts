@@ -100,6 +100,7 @@ export interface HolisticPersonContext {
     urgency: 'urgent' | 'normal' | 'planning'; // 急迫程度
     askTime: Date;           // 发问时间
     similarAsks: number;     // 此问题重复问卦次数
+    // TODO: 此字段在接口中定义但从未在表单中收集，需实现收集或删除
     previousAttempts?: string[]; // 之前尝试的解决方法
   };
   
@@ -121,6 +122,7 @@ export interface HolisticPersonContext {
     premonitions: string[];      // 近期预兆/外应
     physicalState: string;       // 身体感受
     distraction: number;         // 杂念程度（0-10）
+    // TODO: 此字段需程序自动捕获（非用户输入），当前未实现
     typingPattern?: {            // 输入行为分析
       avgPauseMs: number;        // 平均停顿时长
       corrections: number;       // 修改次数
@@ -129,6 +131,7 @@ export interface HolisticPersonContext {
   
   // 补充人象
   supplementary?: {
+    // TODO: 此字段在接口中定义但从未在表单中收集，需实现收集或删除
     faceHandFeatures?: string;   // 面相手相特征
     keyLifeEvents?: LifeEvent[]; // 过往关键节点
     relatedPersons?: PersonReference[]; // 相关人物

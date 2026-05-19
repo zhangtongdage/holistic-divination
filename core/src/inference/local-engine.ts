@@ -152,6 +152,29 @@ export class LocalInferenceEngine {
       if (q.mentalState) parts.push(`心绪：${q.mentalState}`);
     }
 
+    // 补充人象（supplementary 字段透传）
+    if (ctx.supplementary) {
+      const supp = ctx.supplementary;
+      parts.push('');
+      parts.push(`【补充信息】`);
+      if (supp.occupation) parts.push(`职业：${supp.occupation}`);
+      if (supp.financialStatus) parts.push(`财务状况：${supp.financialStatus}`);
+      if (supp.keyLifeEvents) parts.push(`人生关键事件：${supp.keyLifeEvents}`);
+      if (supp.relatedPersons) parts.push(`相关人物：${supp.relatedPersons}`);
+    }
+
+    // 主观预期（expectation 字段透传）
+    if (ctx.expectation) {
+      const exp = ctx.expectation;
+      parts.push('');
+      parts.push(`【问者预期】`);
+      if (exp.desiredOutcome) parts.push(`期望结果：${exp.desiredOutcome}`);
+      if (exp.minimalAcceptable) parts.push(`可接受底线：${exp.minimalAcceptable}`);
+      if (exp.actionPlan) parts.push(`打算行动：${exp.actionPlan}`);
+      if (exp.riskTolerance) parts.push(`风险承受度：${exp.riskTolerance}`);
+      if (exp.timeHorizon) parts.push(`期望周期：${exp.timeHorizon}`);
+    }
+
     // 卦象信息
     if (ctx.hexagram) {
       const h = ctx.hexagram;
@@ -173,11 +196,10 @@ export class LocalInferenceEngine {
     }
 
     parts.push('');
-    parts.push(`请结合以上信息，从${ctx.question?.category?.domain || '综合'}角度给出详细的卜算解读。`);
+    parts.push(`请结合以上所有信息，从${ctx.question?.category?.domain || '综合'}角度给出详细的、高度个性化的卜算解读。务必考虑求测人的职业、财务状况、人生事件和主观预期。`);
 
     return parts.join('\n');
   }
-
   /**
    * 释放资源
    */
